@@ -1,0 +1,24 @@
+{
+  "name": "orion-wanchain",
+  "version": "1.0.0",
+  "main": "index.js",
+  "description": "Orion Protocol integration with Wanchain",
+  "author": "Orion Protocol",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "axios-debug-log": "^0.4.0",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "node-fetch": "^2.3.0",
+    "rxjs": "^6.3.3",
+    "rxjs-compat": "^6.3.3",
+    "ws": "^6.1.0"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0"
+  }
+}

@@ -141,8 +141,8 @@ class OrionMatcher {
 }
 
 module.exports = {
-    OrionSettings: OrionSettings,
-    OrionOrder: OrionOrder,
-    OrionMatcher: OrionMatcher,
-    Assets: Assets
+    OrionSettings,
+    // OrionOrder: OrionOrder,
+    OrionMatcher,
+    Assets
 };

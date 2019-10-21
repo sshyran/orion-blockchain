@@ -2,6 +2,9 @@ const express = require('express');
 const app = express();
 const { WanchainNode } = require('./src/wanchain-node');
 
+// Suscribe to deposits and withdrawl events
+WanchainNode.watchBalanceChange();
+
 app.use(express.json());
 
 app.use((req, res, next) => {

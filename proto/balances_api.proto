@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package dex.grpc.integration;
+
+import "google/protobuf/empty.proto";
+
+service BalancesApi {
+    rpc GetBalanceChanges (google.protobuf.Empty) returns (stream BalanceChangesResponse);
+}
+
+message BalanceChangesResponse {
+    message Record {
+        bytes address = 1;
+        bytes asset = 2;
+        int64 balance = 3;
+    }
+    repeated Record batch = 1;
+}

@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const { WanchainNode } = require('./src/wanchain-node');
+const { getServer } = require('./server');
 
 // Suscribe to deposits and withdrawl events
 WanchainNode.watchBalanceChange();
@@ -55,3 +56,6 @@ app.get('/api/balance/:address', async (req, res) => {
 app.listen(3001, function () {
     console.log('Orion-Wanchain app listening on http://localhost:3001/');
 });
+
+const routeServer = getServer();
+routeServer.start();

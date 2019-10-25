@@ -10,20 +10,21 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "@grpc/proto-loader": "^0.1.0",
     "axios": "^0.18.0",
     "axios-debug-log": "^0.4.0",
     "body-parser": "^1.18.3",
     "colors": "^1.4.0",
     "express": "^4.16.4",
-    "node-fetch": "^2.3.0",
-    "rxjs": "^6.3.3",
-    "rxjs-compat": "^6.3.3",
-    "ws": "^6.1.0",
-    "@grpc/proto-loader": "^0.1.0",
     "google-protobuf": "^3.0.0",
     "grpc": "^1.11.0",
     "grpc-methods": "github:kinesis-exchange/grpc-methods",
-    "web3": "^1.2.1"
+    "node-fetch": "^2.3.0",
+    "rxjs": "^6.3.3",
+    "rxjs-compat": "^6.3.3",
+    "socket.io": "^2.3.0",
+    "web3": "^1.2.1",
+    "ws": "^6.1.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",

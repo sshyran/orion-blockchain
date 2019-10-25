@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@2/dist/socket.io.js"></script>    
+    <title>ORION WS</title>
+  </head>
+  <body>
+    <h1>ORION</h1>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io.connect('http://localhost:3002');
+      socket.on('balanceChange', function (data) {
+        console.log("Balance Change: ", data);
+        socket.emit('balanceChange', "received balance change");
+      });
+    </script>
+  </body>
+</html>

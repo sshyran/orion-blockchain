@@ -39,6 +39,18 @@ app.get('/api/balance/:address', async (req, res) => {
     res.status(200).send({walletBalances, contractbalances});
 });
 
+app.get('/api/description/:assetAddress', async (req, res) => {
+    const assetAddress = req.params.assetAddress;
+    const description = await WanchainNode.assetDescription(assetAddress);
+    res.status(200).send({...description});
+})
+
+app.get('/api/balanceChanges/:address', async (req, res) => {
+    const address = req.params.address;
+    const changeEvents = await WanchainNode.getBalanceChanges(address);
+    res.status(200).send({...changeEvents});
+})
+
 // app.post('/api/order', async (req, res) => {
 //     const order = req.body;
 

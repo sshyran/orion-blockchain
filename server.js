@@ -6,6 +6,10 @@ const { GrpcServerStreamingMethod } = require('grpc-methods');
 const Web3 = require("web3");
 const web3 = new Web3("http://localhost:8545");
 const exchangeArtifact = require("./abis/Exchange.json");
+const exchange = new web3.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address);
+
+const wanAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "asset" address in balanaces
+const ERC20_ABI = require("./abis/erc20");
 
 const grpc = require('grpc');
 
@@ -32,6 +36,7 @@ function getStatuses(call) {
     call.write(status);
     call.end();
 }
+
 
 function toBlockchainOrder(o) {
     return {
@@ -92,16 +97,33 @@ async function broadcast(call, callback) {
     callback(null, resp);
 }
 
-function assetDescription(call, callback) {
+async function getAssetDetails(assetAddress){
+    if(assetAddress === wanAssetAddress) return {name: 'Wanchain', symbol: "WAN", decimals: 18}
+    const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
+    const name = await token.methods.name().call();
+    const symbol = await token.methods.symbol().call();
+    const decimals = await token.methods.decimals().call();
+
+    return {name, symbol, decimals};
+}
+
+async function assetDescription(call, callback) {
     const resp = new messages.AssetDescriptionResponse();
     const desc = new messages.AssetDescription();
     const assetId = Buffer.from(call.request.getAssetId());
-    if (assetId.equals(Buffer.from('aF194e9f29EcA94D6C941cC0c2ff8385c38d72D3', 'hex'))) {
-        desc.setName(Uint8Array.from(Buffer.from('ETH')));
-    } else {
-        desc.setName(Uint8Array.from(Buffer.from('BTC')));
-    }
-    desc.setDecimals(8);
+
+    let assetAddress = buf2hex(assetId);
+
+    let details = await getAssetDetails(assetAddress);
+
+    // if (assetId.equals(Buffer.from('aF194e9f29EcA94D6C941cC0c2ff8385c38d72D3', 'hex'))) {
+    //     desc.setName(Uint8Array.from(Buffer.from('ETH')));
+    // } else {
+    //     desc.setName(Uint8Array.from(Buffer.from('BTC')));
+    // }
+    desc.setName(details.name);
+    desc.setSymbol(details.symbol);
+    desc.setDecimals(details.decimals);
     desc.setHasScript(false);
     resp.setDescription(desc);
     callback(null, resp);
@@ -134,11 +156,23 @@ function hasAddressScript(call, callback) {
     callback(null, resp);
 }
 
-function spendableAssetBalance(call, callback) {
+
+function buf2hex(buffer) {
+    let hex = Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+    return "0x" + hex;
+}
+  
+
+async function spendableAssetBalance(call, callback) {
     const assetId = call.request.getAssetId();
     const address = call.request.getAddress();
     const resp = new messages.SpendableAssetBalanceResponse();
-    resp.setBalance(100000000000);
+
+    let assetAddress = buf2hex(assetId);
+    
+    let balance = await exchange.methods.getBalance(assetAddress, address).call();
+    resp.setBalance(String(balance));
+
     callback(null, resp);
 }
 

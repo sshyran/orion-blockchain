@@ -135,6 +135,8 @@ function hasAddressScript(call, callback) {
 }
 
 function spendableAssetBalance(call, callback) {
+    const assetId = call.request.getAssetId();
+    const address = call.request.getAddress();
     const resp = new messages.SpendableAssetBalanceResponse();
     resp.setBalance(100000000000);
     callback(null, resp);

@@ -98,30 +98,42 @@ class WanchainNode {
 
         const fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
         let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
+
         contract.events.NewAssetDeposit({fromBlock}, async (error, event) =>{
             if(error) return console.log(`Event error`.red) 
-            const{ user, assetAddress} = event.returnValues;
+            const{ user, assetAddress, amount} = event.returnValues;
 
             let asset;
             if(assetAddress === wanAssetAddress) asset = "WAN"
-            else asset = this.addressToAssetSymbol(assetAddress).symbol;
-            console.log(`New ${asset} Deposit Received from ${user}`.cyan.inverse);
+            else {
+                let description = await this.assetDescription(assetAddress);
+                asset = description.symbol
+            }
+
+            console.log(`New Deposit! ${amount} ${asset} received from ${user}`.cyan.inverse);
             let balances = await this.getContractBalances(user)
             console.log('Updated user contract balances:', balances);
 
-            io.emit('balanceChange', { reason:"Deposit",newBalances:{...balances} });
+            io.emit('balanceChange', { reason:"Deposit", token: asset, amount, newBalances:{...balances} });
 
         })
 
         contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) =>{
             if(error) return console.log(`Event error`.red) 
             const{ user, assetAddress} = event.returnValues;
-            const asset = this.addressToAssetSymbol(assetAddress);
+
+            let asset;
+            if(assetAddress === wanAssetAddress) asset = "WAN"
+            else {
+                let description = await this.assetDescription(assetAddress);                
+                asset = description.symbol
+            }
+
             console.log(`New ${asset} Withdrawl to ${user}`.yellow.inverse);
             let balances = await this.getContractBalances(user)
             console.log('Updated user contract balances:', balances);
 
-            io.emit('balanceChange', { reason:"Withdrawl",newBalances:{...balances} });
+            io.emit('balanceChange', { reason:"Withdrawl", token: asset, amount, newBalances:{...balances} });
 
         })
 

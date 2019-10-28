@@ -50,16 +50,7 @@ class WanchainNode {
     }
 
     static async assetDescription(assetAddress){
-        // switch(assetAddress){
-        //     case wanAssetAddress:
-        //         return 'WAN'   
-        //     case WETHArtifact.networks["3"].address: 
-        //         return 'WETH'
-        //     case WBTCArtifact.networks["3"].address: 
-        //         return 'WBTC'
-        //     default: return null
-        // }
-        
+        if(assetAddress === wanAssetAddress) return {name: 'Wanchain', symbol: "WAN", decimals: 18}
         const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
         const name = await token.methods.name().call();
         const symbol = await token.methods.symbol().call();
@@ -94,46 +85,46 @@ class WanchainNode {
             client.on('disconnect', () => { console.log("client disconnected") });
         });
 
-        // Gwan command used: ./gwan --ws --wsapi eth,net,admin,personal,wan --wsorigins="*" --rpc --testnet --rpcapi eth,net,admin,personal,wan
+        // Gwan command used to run gwan: 
+        // ./gwan --ws --wsapi eth,net,admin,personal,wan --wsorigins="*" --rpc --testnet --rpcapi eth,net,admin,personal,wan
 
         const fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
         let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
 
         contract.events.NewAssetDeposit({fromBlock}, async (error, event) =>{
-            if(error) return console.log(`Event error`.red) 
-            const{ user, assetAddress, amount} = event.returnValues;
+            if(error) return console.log(`Event error`.red)
 
-            let asset;
-            if(assetAddress === wanAssetAddress) asset = "WAN"
-            else {
-                let description = await this.assetDescription(assetAddress);
-                asset = description.symbol
-            }
+            let { user, assetAddress, amount} = event.returnValues;
+
+            let description = await this.assetDescription(assetAddress);
+            let asset = description.symbol;
+            amount = amount*10**(-description.decimals);
+            
 
             console.log(`New Deposit! ${amount} ${asset} received from ${user}`.cyan.inverse);
-            let balances = await this.getContractBalances(user)
-            console.log('Updated user contract balances:', balances);
+            let balances = await this.getContractBalances(user);
+            let newBalance = balances[asset]*10**(-description.decimals);
 
-            io.emit('balanceChange', { reason:"Deposit", token: asset, amount, newBalances:{...balances} });
+            io.emit('balanceChange', { reason:"Deposit", user, asset, amount, newBalance});
 
         })
 
         contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) =>{
             if(error) return console.log(`Event error`.red) 
-            const{ user, assetAddress} = event.returnValues;
+
+            let { user, assetAddress, amount} = event.returnValues;
 
             let asset;
-            if(assetAddress === wanAssetAddress) asset = "WAN"
-            else {
-                let description = await this.assetDescription(assetAddress);                
-                asset = description.symbol
-            }
 
-            console.log(`New ${asset} Withdrawl to ${user}`.yellow.inverse);
-            let balances = await this.getContractBalances(user)
-            console.log('Updated user contract balances:', balances);
+            let description = await this.assetDescription(assetAddress);
+            asset = description.symbol;
+            amount = amount*10**(-description.decimals);
 
-            io.emit('balanceChange', { reason:"Withdrawl", token: asset, amount, newBalances:{...balances} });
+            console.log(`New Withdrawal! ${amount} ${asset} withdrew to ${user}`.yellow.inverse);
+            let balances = await this.getContractBalances(user);
+            let newBalance = balances[asset]*10**(-description.decimals);
+
+            io.emit('balanceChange', { reason:"Withdrawal", user, asset, amount, newBalance});
 
         })
 

@@ -6,7 +6,7 @@ const { GrpcServerStreamingMethod } = require('grpc-methods');
 const Web3 = require("web3");
 const web3 = new Web3("http://localhost:8545");
 const exchangeArtifact = require("./abis/Exchange.json");
-const exchange = new web3.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address);
+
 
 const wanAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "asset" address in balanaces
 const ERC20_ABI = require("./abis/erc20");

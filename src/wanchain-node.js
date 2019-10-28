@@ -59,6 +59,19 @@ class WanchainNode {
         return {name, symbol, decimals};
     }
 
+    static async getWalletBalance(assetAddress, userAddress){
+        if(assetAddress === wanAssetAddress){
+            let wanBalance = await web3.eth.getBalance(userAddress);
+            return web3.utils.fromWei(wanBalance.toString())
+        }
+
+        const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
+        const balance = await token.methods.balanceOf(userAddress).call();
+        const decimals = await token.methods.decimals().call();
+        
+        return balance*10**(-decimals);
+    }
+
     static async getBalanceChanges(address){        
         let depositEvents = await Contracts.exchange.getPastEvents("NewAssetDeposit", {
             filter:{user:address},
@@ -81,6 +94,7 @@ class WanchainNode {
         const io = require('socket.io')(3002);
         io.on('connection', client => {
             console.log("New Client Connected");
+            client.emit("contracts", Contracts)
             client.on('received', data => { console.log(data);});
             client.on('disconnect', () => { console.log("client disconnected") });
         });
@@ -99,13 +113,15 @@ class WanchainNode {
             let description = await this.assetDescription(assetAddress);
             let asset = description.symbol;
             amount = amount*10**(-description.decimals);
+
+            let newWalletBalance = await this.getWalletBalance(assetAddress, user);
             
 
             console.log(`New Deposit! ${amount} ${asset} received from ${user}`.cyan.inverse);
             let balances = await this.getContractBalances(user);
             let newBalance = balances[asset]*10**(-description.decimals);
 
-            io.emit('balanceChange', { reason:"Deposit", user, asset, amount, newBalance});
+            io.emit('balanceChange', { reason:"Deposit", user, asset, amount, newBalance, newWalletBalance});
 
         })
 
@@ -120,11 +136,13 @@ class WanchainNode {
             asset = description.symbol;
             amount = amount*10**(-description.decimals);
 
+            let newWalletBalance = await this.getWalletBalance(assetAddress, user);
+
             console.log(`New Withdrawal! ${amount} ${asset} withdrew to ${user}`.yellow.inverse);
             let balances = await this.getContractBalances(user);
             let newBalance = balances[asset]*10**(-description.decimals);
 
-            io.emit('balanceChange', { reason:"Withdrawal", user, asset, amount, newBalance});
+            io.emit('balanceChange', { reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance});
 
         })
 

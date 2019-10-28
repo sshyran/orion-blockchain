@@ -16,6 +16,12 @@
         console.log("Balance Change: ", data);
         socket.emit('balanceChange', "received balance change");
       });
+
+      socket.on('contracts', function (contracts) {
+        window.exchange = wan3.eth.contract(contracts.exchange._jsonInterface).at(contracts.exchange._address)
+        window.wbtc = wan3.eth.contract(contracts.wbtc._jsonInterface).at(contracts.wbtc._address)
+        window.weth = wan3.eth.contract(contracts.weth._jsonInterface).at(contracts.weth._address)
+      });
     </script>
   </body>
 </html>

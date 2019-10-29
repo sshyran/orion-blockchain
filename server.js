@@ -110,19 +110,16 @@ async function getAssetDetails(assetAddress){
 async function assetDescription(call, callback) {
     const resp = new messages.AssetDescriptionResponse();
     const desc = new messages.AssetDescription();
-    const assetId = Buffer.from(call.request.getAssetId());
+    const assetId = web3.utils.bytesToHex(call.request.getAssetId());
 
-    let assetAddress = buf2hex(assetId);
-
-    let details = await getAssetDetails(assetAddress);
+    let details = await getAssetDetails(assetId);
 
     // if (assetId.equals(Buffer.from('aF194e9f29EcA94D6C941cC0c2ff8385c38d72D3', 'hex'))) {
     //     desc.setName(Uint8Array.from(Buffer.from('ETH')));
     // } else {
     //     desc.setName(Uint8Array.from(Buffer.from('BTC')));
     // }
-    desc.setName(details.name);
-    desc.setSymbol(details.symbol);
+    desc.setName(Uint8Array.from(Buffer.from(details.symbol)));
     desc.setDecimals(details.decimals);
     desc.setHasScript(false);
     resp.setDescription(desc);
@@ -164,14 +161,12 @@ function buf2hex(buffer) {
   
 
 async function spendableAssetBalance(call, callback) {
-    const assetId = call.request.getAssetId();
-    const address = call.request.getAddress();
+    const assetId = web3.utils.bytesToHex(call.request.getAssetId());
+    const address = web3.utils.bytesToHex(call.request.getAddress());
     const resp = new messages.SpendableAssetBalanceResponse();
 
-    let assetAddress = buf2hex(assetId);
-    
-    let balance = await exchange.methods.getBalance(assetAddress, address).call();
-    resp.setBalance(String(balance));
+    let balance = await exchange.methods.getBalance(assetId, address).call();
+    resp.setBalance(balance);
 
     callback(null, resp);
 }
@@ -210,6 +205,8 @@ function getBalanceChanges(stream) {
  * @return {Server} The new server object
  */
 function getServer() {
+    setupContracts();
+
     const server = new grpc.Server({
         "grpc.keepalive_time_ms": 10000, // send keepalive ping every 10 second, default is 2 hours
         "grpc.keepalive_timeout_ms": 5000, // keepalive ping time out after 5 seconds, default is 20 seoncds
@@ -239,8 +236,6 @@ function getServer() {
 }
 
 if (require.main === module) {
-    setupContracts().then( () => {
-        // Setups contracts need to finish before calling any other method that uses 'exchange' obj
 
         // If this is run as a script, start a server on an unused port
         const routeServer = getServer();

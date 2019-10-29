@@ -106,7 +106,7 @@ class WanchainNode {
         let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
 
         contract.events.NewAssetDeposit({fromBlock}, async (error, event) =>{
-            if(error) return console.log(`Event error`.red)
+            if(error) return console.log(`Event error: ${error}`.red)
 
             let { user, assetAddress, amount} = event.returnValues;
 

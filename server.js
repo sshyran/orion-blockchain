@@ -239,11 +239,14 @@ function getServer() {
 }
 
 if (require.main === module) {
-    setupContracts();
+    setupContracts().then( () => {
+        // Setups contracts need to finish before calling any other method that uses 'exchange' obj
 
-    // If this is run as a script, start a server on an unused port
-    const routeServer = getServer();
-    routeServer.start();
+        // If this is run as a script, start a server on an unused port
+        const routeServer = getServer();
+        routeServer.start();
+    }) 
+
 }
 
 exports.getServer = getServer;

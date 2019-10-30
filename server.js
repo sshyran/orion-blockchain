@@ -54,16 +54,36 @@ function toBlockchainOrder(o) {
     }
 }
 
+// === FILL ORDERS ===
 function getSignatureObj(signature) {
-    signature = web3.utils.bytesToHex(signature);
     signature = signature.substr(2); //remove 0x
     const r = "0x" + signature.slice(0, 64);
     const s = "0x" + signature.slice(64, 128);
-    // const v = web3.utils.hexToNumber("0x" + signature.slice(128, 130)) + 27; // ganache
-    const v = web3.utils.hexToNumber("0x" + signature.slice(128, 130)); // gwan
-
-    return { r, s, v };
+    let v = web3.utils.hexToNumber("0x" + signature.slice(128, 130)); //gwan
+    if (netId !== 3) v += 27; //ganache
+    return { v, r, s };
 }
+
+async function fillOrdersByMatcher(
+    buyOrder,
+    sellOrder,
+    signature1,
+    signature2,
+    fillPrice,
+    fillAmount
+) {
+    return exchange.methods
+        .fillOrders(
+            buyOrder,
+            sellOrder,
+            getSignatureObj(signature1),
+            getSignatureObj(signature2),
+            fillPrice,
+            fillAmount
+        )
+        .send({ from: accounts[0], gas: 1e6 }); //matcher address is accounts 0
+}
+
 
 async function broadcast(call, callback) {
     const r = call.request;
@@ -72,28 +92,39 @@ async function broadcast(call, callback) {
     const eData = r.getTransaction().getTransaction().getExchange();
     const buyOrder = toBlockchainOrder(eData.getOrdersList()[0]);
     console.log("Buy Order Struct: \n", JSON.stringify(buyOrder, null, 2));
+    const buySig = web3.utils.bytesToHex(eData.getOrdersList()[0].getProofsList()[0]);
+    console.log("Buy signature:", buySig);
+
     const sellOrder = toBlockchainOrder(eData.getOrdersList()[1]);
     console.log("Sell Order Struct: \n", JSON.stringify(sellOrder, null, 2));
+    const sellSig = web3.utils.bytesToHex(eData.getOrdersList()[1].getProofsList()[0]);
+    console.log("Sell Signature:", sellSig);
 
     const fillAmount = eData.getAmount();
     const fillPrice = eData.getPrice();
 
-    let response = await exchange.methods
-        .fillOrders(
-            buyOrder,
-            sellOrder,
-            getSignatureObj(eData.getOrdersList()[0].getProofsList()[0]),
-            getSignatureObj(eData.getOrdersList()[1].getProofsList()[0]),
-            fillPrice,
-            fillAmount
-        )
-        .send({ from: accounts[0], gas: 1e6 }); //matcher address is accounts 0
-
-    console.log("\nTransaction successful? ", response.status);
-    console.log("New Trade Event:\n", response.events.NewTrade.returnValues);
+    console.log("Fill amount:", fillAmount);
+    console.log("Fill price:", fillPrice);
 
     const resp = new messages.BroadcastResponse();
-    resp.setIsValid(true);
+    try {
+        let response = await fillOrdersByMatcher(
+                buyOrder,
+                sellOrder,
+                buySig,
+                sellSig,
+                fillPrice,
+                fillAmount
+            )
+        console.log("\nTransaction successful? ", response.status);
+        console.log("New Trade Event:\n", response.events.NewTrade.returnValues);
+
+        resp.setIsValid(response.status);
+    } catch (e) {
+        console.log("Error occured during fillOrders", e);
+        resp.setIsValid(false);
+    }
+
     callback(null, resp);
 }
 
@@ -110,19 +141,16 @@ async function getAssetDetails(assetAddress){
 async function assetDescription(call, callback) {
     const resp = new messages.AssetDescriptionResponse();
     const desc = new messages.AssetDescription();
-    const assetId = Buffer.from(call.request.getAssetId());
+    const assetId = web3.utils.bytesToHex(call.request.getAssetId());
 
-    let assetAddress = buf2hex(assetId);
-
-    let details = await getAssetDetails(assetAddress);
+    let details = await getAssetDetails(assetId);
 
     // if (assetId.equals(Buffer.from('aF194e9f29EcA94D6C941cC0c2ff8385c38d72D3', 'hex'))) {
     //     desc.setName(Uint8Array.from(Buffer.from('ETH')));
     // } else {
     //     desc.setName(Uint8Array.from(Buffer.from('BTC')));
     // }
-    desc.setName(details.name);
-    desc.setSymbol(details.symbol);
+    desc.setName(Uint8Array.from(Buffer.from(details.symbol)));
     desc.setDecimals(details.decimals);
     desc.setHasScript(false);
     resp.setDescription(desc);
@@ -164,14 +192,13 @@ function buf2hex(buffer) {
   
 
 async function spendableAssetBalance(call, callback) {
-    const assetId = call.request.getAssetId();
-    const address = call.request.getAddress();
+    const assetId = web3.utils.bytesToHex(call.request.getAssetId());
+    const address = web3.utils.bytesToHex(call.request.getAddress());
     const resp = new messages.SpendableAssetBalanceResponse();
 
-    let assetAddress = buf2hex(assetId);
-    
-    let balance = await exchange.methods.getBalance(assetAddress, address).call();
-    resp.setBalance(String(balance));
+    let balance = await exchange.methods.getBalance(assetId, address).call();
+    console.log("Spendable balance of address:", address, ",", assetId, "=", balance);
+    resp.setBalance(50e8);
 
     callback(null, resp);
 }
@@ -210,6 +237,8 @@ function getBalanceChanges(stream) {
  * @return {Server} The new server object
  */
 function getServer() {
+    setupContracts();
+
     const server = new grpc.Server({
         "grpc.keepalive_time_ms": 10000, // send keepalive ping every 10 second, default is 2 hours
         "grpc.keepalive_timeout_ms": 5000, // keepalive ping time out after 5 seconds, default is 20 seoncds
@@ -239,13 +268,10 @@ function getServer() {
 }
 
 if (require.main === module) {
-    setupContracts().then( () => {
-        // Setups contracts need to finish before calling any other method that uses 'exchange' obj
 
-        // If this is run as a script, start a server on an unused port
-        const routeServer = getServer();
-        routeServer.start();
-    }) 
+    // If this is run as a script, start a server on an unused port
+    const routeServer = getServer();
+    routeServer.start();
 
 }
 

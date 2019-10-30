@@ -1,23 +1,24 @@
+const axios = require('axios');
+const WETHArtifact = require("../abis/WETH.json");
+const WBTCArtifact = require("../abis/WBTC.json");
+
 const OrionSettings = {
     matcherUrl: 'https://demo.orionprotocol.io/matcher',
     orionUrl: 'https://demo.orionprotocol.io/backend',
 };
 
 const Assets = {
-    BTC: '0x89A3e1494Bc3Db81dAdC893DEd7476d33D47dCBD',
-    ETH: '0x46397994A7e1E926eA0DE95557A4806d38F10B0d',
-    TUSD: '0x1423ceB28dac1416E1031ff2430FFd72efe37DFD',
+    BTC: WBTCArtifact.networks["3"].address,
+    ETH: WETHArtifact.networks["3"].address,
 
     toSymbolAsset: function(asset) {
         switch (asset) {
-            case '0x89A3e1494Bc3Db81dAdC893DEd7476d33D47dCBD':
+            case this.BTC:
                 return 'BTC';
-            case '0x46397994A7e1E926eA0DE95557A4806d38F10B0d':
+            case this.ETH:
                 return 'ETH';
-            case '0x1423ceB28dac1416E1031ff2430FFd72efe37DFD':
-                return 'TUSD';
             default:
-                return null;
+                return 'BTC';
         }
     },
     toSymbol: function(baseAsset, quoteAsset) {
@@ -36,7 +37,7 @@ class BlockchainOrder {
                 matcherFee,
                 matcherFeeAsset,
                 nonce,
-                expirationTimestamp,
+                expiration,
                 signature) {
         this.senderAddress = senderAddress;
         this.matcherAddress = matcherAddress;
@@ -48,7 +49,7 @@ class BlockchainOrder {
         this.matcherFee = matcherFee;
         this.matcherFeeAsset = matcherFeeAsset;
         this.nonce = nonce;
-        this.expirationTimestamp = expirationTimestamp;
+        this.expiration = expiration;
         this.signature = signature;
     }
 }
@@ -56,13 +57,13 @@ class BlockchainOrder {
 class OrionMatcher {
     static matcherHttp() {
         return axios.create({
-            baseURL: Matcher.matcherUrl
+            baseURL: OrionSettings.matcherUrl
         });
     }
 
     static orionHttp() {
         return axios.create({
-            baseURL: Matcher.orionUrl
+            baseURL: OrionSettings.orionUrl
         });
     }
     /**
@@ -70,9 +71,10 @@ class OrionMatcher {
      * @param blockchainOrder: BlockchainOrder
      */
     static async submitToMatcher(blockchainOrder) {
-        console.log("Submitting BlockchainOrder: " + JSON.stringify(blockchainOrder))
+        const matcherOrder = OrionMatcher.toMatcherOrder(blockchainOrder);
+        console.log("Submitting MatcherOrder: " + JSON.stringify(matcherOrder));
 
-        return OrionMatcher.matcherHttp().post('/matcher/orderbook', OrionMatcher.toMatcherOrder(blockchainOrder))
+        return OrionMatcher.matcherHttp().post('/orderbook', matcherOrder)
             .then((res) => {
                 console.log(res.data);
                 return true;
@@ -89,6 +91,7 @@ class OrionMatcher {
      */
     static toMatcherOrder(bo) {
         return {
+            version: 3,
             senderPublicKey: bo.senderAddress,
             matcherPublicKey: bo.matcherAddress,
             orderType: bo.side,
@@ -99,7 +102,7 @@ class OrionMatcher {
             price: bo.price,
             amount: bo.amount,
             timestamp: bo.nonce,
-            expiration: bo.expirationTimestamp,
+            expiration: bo.expiration,
             matcherFee: bo.matcherFee,
             matcherFeeAssetId: bo.matcherFeeAsset,
             proofs: [bo.signature]

@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const { WanchainNode } = require('./src/wanchain-node');
+const { OrionMatcher } = require('./src/orion-matcher');
 const { getServer } = require('./server');
 
 // Suscribe to deposits and withdrawl events
@@ -51,19 +52,19 @@ app.get('/api/balanceChanges/:address', async (req, res) => {
     res.status(200).send({...changeEvents});
 })
 
-// app.post('/api/order', async (req, res) => {
-//     const order = req.body;
+app.post('/api/order', async (req, res) => {
+    const order = req.body;
 
-//     try {
-//         const result1 = await OrionMatcher.submitToMatcher(order);
-//         const result2 = await OrionMatcher.submitToOrion(order);
-//         res.send(result2);
-//     } catch (error) {
-//         console.log(error);
-//         res.status(400);
-//         res.send({code: 1000, msg: error.message});
-//     }
-// });
+    try {
+        const result1 = await OrionMatcher.submitToMatcher(order);
+        const result2 = await OrionMatcher.submitToOrion(order);
+        res.send(result2);
+    } catch (error) {
+        console.log(error);
+        res.status(400);
+        res.send({code: 1000, msg: error.message});
+    }
+});
 
 app.listen(3001, function () {
     console.log('Orion-Wanchain app listening on http://localhost:3001/');

@@ -95,7 +95,7 @@ class WanchainNode {
         io.on('connection', client => {
             console.log("New Client Connected");
             client.emit("contracts", Contracts)
-            client.on('received', data => { console.log(data);});
+            client.on('received', data => { console.log("Received event:", data);});
             client.on('disconnect', () => { console.log("client disconnected") });
         });
 

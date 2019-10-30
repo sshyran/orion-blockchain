@@ -25,38 +25,24 @@ const wanAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "a
 
 class WanchainNode {
 
+    static formatValue(value){
+        return value.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 8
+        });
+    }
+
     static async getWalletBalances(address) {
 
-        let balanceWan = await web3.eth.getBalance(address);
-        let balanceWETH = await Contracts.weth.methods.balanceOf(address).call();
-        let balanceWBTC = await Contracts.wbtc.methods.balanceOf(address).call();
+        let balanceWan = await this.getWalletBalance(wanAssetAddress, address)
+        let balanceWETH =  await this.getWalletBalance(Contracts.weth._address, address)
+        let balanceWBTC =  await this.getWalletBalance(Contracts.wbtc._address, address)
 
         return {
-            'WAN': balanceWan.toString(),
-            'WETH': balanceWETH.toString(),
-            'WBTC': balanceWBTC.toString()
+            'WAN': this.formatValue(balanceWan),
+            'WETH': this.formatValue(balanceWETH),
+            'WBTC': this.formatValue(balanceWBTC),
         }
-    }
-
-    static async getContractBalances(address) {
-        const assets = [wanAssetAddress, Contracts.weth._address, Contracts.wbtc._address];
-        let balances = await Contracts.exchange.methods.getBalances(assets, address).call();
-
-        return {
-            'WAN': balances[0].toString(),
-            'WETH': balances[1].toString(),
-            'WBTC': balances[2].toString()
-        }
-    }
-
-    static async assetDescription(assetAddress){
-        if(assetAddress === wanAssetAddress) return {name: 'Wanchain', symbol: "WAN", decimals: 18}
-        const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
-        const name = await token.methods.name().call();
-        const symbol = await token.methods.symbol().call();
-        const decimals = await token.methods.decimals().call();
-
-        return {name, symbol, decimals};
     }
 
     static async getWalletBalance(assetAddress, userAddress){
@@ -71,6 +57,29 @@ class WanchainNode {
         
         return balance*10**(-decimals);
     }
+
+    static async getContractBalances(address) {
+        const assets = [wanAssetAddress, Contracts.weth._address, Contracts.wbtc._address];
+        let balances = await Contracts.exchange.methods.getBalances(assets, address).call();
+
+        return {
+            'WAN': this.formatValue(balances[0]/10**8),
+            'WETH': this.formatValue(balances[1]/10**8),
+            'WBTC': this.formatValue(balances[2]/10**8),
+        }
+
+    }
+
+    static async assetDescription(assetAddress){
+        if(assetAddress === wanAssetAddress) return {name: 'Wanchain', symbol: "WAN", decimals: 18}
+        const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
+        const name = await token.methods.name().call();
+        const symbol = await token.methods.symbol().call();
+        const decimals = await token.methods.decimals().call();
+
+        return {name, symbol, decimals};
+    }
+
 
     static async getBalanceChanges(address){        
         let depositEvents = await Contracts.exchange.getPastEvents("NewAssetDeposit", {
@@ -100,7 +109,7 @@ class WanchainNode {
         });
 
         // Gwan command used to run gwan: 
-        // ./gwan --ws --wsapi eth,net,admin,personal,wan --wsorigins="*" --rpc --testnet --rpcapi eth,net,admin,personal,wan
+        // ./gwan --ws --wsapi eth,net,admin,personal,wan --wsorigins="*" --rpc --testnet --rpcapi eth,net,admin,personal,wan console
 
         const fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
         let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
@@ -112,7 +121,9 @@ class WanchainNode {
 
             let description = await this.assetDescription(assetAddress);
             let asset = description.symbol;
-            amount = amount*10**(-description.decimals);
+
+            amount = amount/(10**8);// because contract uses balances in 10 ^ 8 format
+
 
             let newWalletBalance = await this.getWalletBalance(assetAddress, user);
             
@@ -134,7 +145,8 @@ class WanchainNode {
 
             let description = await this.assetDescription(assetAddress);
             asset = description.symbol;
-            amount = amount*10**(-description.decimals);
+
+            amount = amount/(10**8); // because contract uses balances in 10 ^ 8 format
 
             let newWalletBalance = await this.getWalletBalance(assetAddress, user);
 

@@ -109,12 +109,14 @@ class WanchainNode {
            
             console.log("New Client Connected", client.id);
 
+            // Upon connection, store clients address in object
             client.on('clientAddress', address => { 
                 console.log("Received address from client", client.id, address); 
                 clients[address] = client.id;
                 console.log("Clients:", clients);
             });
 
+            //When client disconnects, delete that record from object
             client.on('disconnect', () => { 
                 console.log("client disconnected"); 
                 clients = _.omitBy(clients, (value, key) => value === client.id);
@@ -151,8 +153,6 @@ class WanchainNode {
                 io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance})
             }
 
-            // io.emit('balanceChange', { reason:"Deposit", user, asset, amount, newBalance, newWalletBalance});
-
         })
 
         contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) =>{
@@ -177,8 +177,6 @@ class WanchainNode {
             if(clients[user]){
                 io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance})
             }
-
-            io.emit('balanceChange', { reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance});
 
         })
 

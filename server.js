@@ -151,7 +151,7 @@ async function assetDescription(call, callback) {
     //     desc.setName(Uint8Array.from(Buffer.from('BTC')));
     // }
     desc.setName(Uint8Array.from(Buffer.from(details.symbol)));
-    desc.setDecimals(details.decimals);
+    desc.setDecimals(8);
     desc.setHasScript(false);
     resp.setDescription(desc);
     callback(null, resp);

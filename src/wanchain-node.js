@@ -148,7 +148,7 @@ class WanchainNode {
 
             // If there is a client connected with the user event address
             if(clients[user]){
-                io.to(client.id).emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance})
+                io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance})
             }
 
             // io.emit('balanceChange', { reason:"Deposit", user, asset, amount, newBalance, newWalletBalance});

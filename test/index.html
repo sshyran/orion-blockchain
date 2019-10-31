@@ -12,6 +12,8 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       var socket = io.connect('http://localhost:3002');
+      socket.emit('clientAddress', Math.random());
+
       socket.on('balanceChange', function (data) {
         console.log("Balance Change: ", data);
         socket.emit('balanceChange', "received balance change");

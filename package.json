@@ -15,6 +15,7 @@
     "axios-debug-log": "^0.4.0",
     "body-parser": "^1.18.3",
     "colors": "^1.4.0",
+    "dotenv": "^8.2.0",
     "express": "^4.16.4",
     "google-protobuf": "^3.0.0",
     "grpc": "^1.11.0",
@@ -23,6 +24,7 @@
     "rxjs": "^6.3.3",
     "rxjs-compat": "^6.3.3",
     "socket.io": "^2.3.0",
+    "truffle-hdwallet-provider": "^1.0.17",
     "web3": "^1.2.1",
     "ws": "^6.1.0"
   },

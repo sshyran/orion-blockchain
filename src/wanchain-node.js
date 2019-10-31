@@ -4,6 +4,8 @@ const Web3 = require("web3");
 const web3 = new Web3("http://localhost:8545"); // Wanchain Testnet running locally
 const web3Websocket = new Web3(`ws://127.0.0.1:8546`);
 
+const _ = require("lodash")
+
 
 require('colors');
 
@@ -97,15 +99,27 @@ class WanchainNode {
         return {depositEvents, withdrawEvents};
     }
 
+
     static async watchBalanceChange (){
 
+        let clients ={};
         
         const io = require('socket.io')(3002);
         io.on('connection', client => {
-            console.log("New Client Connected");
-            client.emit("contracts", Contracts)
-            client.on('received', data => { console.log("Received event:", data);});
-            client.on('disconnect', () => { console.log("client disconnected") });
+           
+            console.log("New Client Connected", client.id);
+
+            client.on('clientAddress', address => { 
+                console.log("Received address from client", client.id, address); 
+                clients[address] = client.id;
+                console.log("Clients:", clients);
+            });
+
+            client.on('disconnect', () => { 
+                console.log("client disconnected"); 
+                clients = _.omitBy(clients, (value, key) => value === client.id);
+                console.log("Clients:", clients);
+            })
         });
 
         // Gwan command used to run gwan: 
@@ -132,7 +146,12 @@ class WanchainNode {
             let balances = await this.getContractBalances(user);
             let newBalance = balances[asset]*10**(-description.decimals);
 
-            io.emit('balanceChange', { reason:"Deposit", user, asset, amount, newBalance, newWalletBalance});
+            // If there is a client connected with the user event address
+            if(clients[user]){
+                io.to(client.id).emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance})
+            }
+
+            // io.emit('balanceChange', { reason:"Deposit", user, asset, amount, newBalance, newWalletBalance});
 
         })
 
@@ -153,6 +172,11 @@ class WanchainNode {
             console.log(`New Withdrawal! ${amount} ${asset} withdrew to ${user}`.yellow.inverse);
             let balances = await this.getContractBalances(user);
             let newBalance = balances[asset]*10**(-description.decimals);
+
+            // If there is a client connected with the user event address
+            if(clients[user]){
+                io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance})
+            }
 
             io.emit('balanceChange', { reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance});
 

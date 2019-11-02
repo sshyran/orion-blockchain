@@ -7,6 +7,8 @@ const Web3 = require("web3");
 const web3 = new Web3("http://localhost:8545");
 const exchangeArtifact = require("./abis/Exchange.json");
 
+const io = require('socket.io-client')
+
 
 const wanAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "asset" address in balanaces
 const ERC20_ABI = require("./abis/erc20");
@@ -209,26 +211,19 @@ function forgedOrder(call, callback) {
     callback(null, resp);
 }
 
-function getBalanceChanges(stream) {
-    let i = 0;
-    const balances = new balanceMessages.BalanceChangesResponse();
-    const b = new balanceMessages.BalanceChangesResponse.Record();
-    b.setAddress(Buffer.from("89A3e1494Bc3Db81dAdC893DEd7476d33D47dCBD", "hex"));
-    b.setAsset(Buffer.from("89A3e1494Bc3Db81dAdC893DEd7476d33D47dCBD", "hex"));
-    b.setBalance(1000);
-    balances.addBatch(b);
-    stream.write(balances);
-    let id = setInterval(() => {
-        console.log('Infinite Loop Test interval n:', i++);
-        const balances = new balanceMessages.BalanceChangesResponse();
-        const b = new balanceMessages.BalanceChangesResponse.Record();
-        b.setAddress(Buffer.from("89A3e1494Bc3Db81dAdC893DEd7476d33D47dCBD", "hex"));
-        b.setAsset(Buffer.from("89A3e1494Bc3Db81dAdC893DEd7476d33D47dCBD", "hex"));
-        b.setBalance(1000);
+// TODO: Where to get address
+function getBalanceChanges(stream, address) {
+    let socket = io.connect('http://localhost:3002');
+    socket.emit('clientAddress', address);
+
+    socket.on('balanceChange', ({user, asset, newBalance}) =>{
+        console.log(data);
+        b.setAddress(Buffer.from(user, "hex"));
+        b.setAsset(Buffer.from(asset, "hex"));
+        b.setBalance(newBalance);
         balances.addBatch(b);
-        if (i > 10) clearInterval(id);
         stream.write(balances);
-    }, 2000);
+    });
 }
 
 /**

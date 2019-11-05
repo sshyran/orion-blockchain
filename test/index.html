@@ -12,18 +12,24 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       var socket = io.connect('http://localhost:3002');
+
+      // Suscribe to specific address balance change
       socket.emit('clientAddress', Math.random());
+
+      // Suscribe to all events
+      // socket.emit('getAllChanges', "Suscribe to all balance changes");
+
 
       socket.on('balanceChange', function (data) {
         console.log("Balance Change: ", data);
         socket.emit('balanceChange', "received balance change");
       });
 
-      socket.on('contracts', function (contracts) {
-        window.exchange = wan3.eth.contract(contracts.exchange._jsonInterface).at(contracts.exchange._address)
-        window.wbtc = wan3.eth.contract(contracts.wbtc._jsonInterface).at(contracts.wbtc._address)
-        window.weth = wan3.eth.contract(contracts.weth._jsonInterface).at(contracts.weth._address)
-      });
+      // socket.on('contracts', function (contracts) {
+      //   window.exchange = wan3.eth.contract(contracts.exchange._jsonInterface).at(contracts.exchange._address)
+      //   window.wbtc = wan3.eth.contract(contracts.wbtc._jsonInterface).at(contracts.wbtc._address)
+      //   window.weth = wan3.eth.contract(contracts.weth._jsonInterface).at(contracts.weth._address)
+      // });
     </script>
   </body>
 </html>

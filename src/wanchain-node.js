@@ -106,14 +106,17 @@ class WanchainNode {
         
         const io = require('socket.io')(3002);
         io.on('connection', client => {
-           
-            console.log("New Client Connected", client.id);
 
-            // Upon connection, store clients address in object
-            client.on('clientAddress', address => { 
-                console.log("Received address from client", client.id, address); 
+            // Client suscribes to a specific address 
+            client.on('clientAddress', address => {
                 clients[address] = client.id;
-                console.log("Clients:", clients);
+                console.log(`Client ${client.id} suscribed to changes in address ${address}`);                
+            });
+
+            // Client joins all balance changes room
+            client.on('getAllChanges', () => {               
+                client.join('allChanges');
+                console.log(`Client ${client.id} suscribed to all balance Changes`);                
             });
 
             //When client disconnects, delete that record from object
@@ -153,6 +156,10 @@ class WanchainNode {
                 io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance})
             }
 
+            // Emit event to all clients in room "all"
+            io.in('allChanges').emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance});
+
+
         })
 
         contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) =>{
@@ -177,6 +184,9 @@ class WanchainNode {
             if(clients[user]){
                 io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance})
             }
+
+             // Emit event to all clients in room "all"
+             io.in('allChanges').emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance});
 
         })
 

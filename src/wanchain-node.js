@@ -149,7 +149,8 @@ class WanchainNode {
 
             console.log(`New Deposit! ${amount} ${asset} received from ${user}`.cyan.inverse);
             let balances = await this.getContractBalances(user);
-            let newBalance = balances[asset]*10**(-description.decimals);
+            // let newBalance = balances[asset]*10**(-description.decimals);
+            let newBalance = balances[asset];
 
             // If there is a client connected with the user event address
             if(clients[user]){
@@ -178,7 +179,8 @@ class WanchainNode {
 
             console.log(`New Withdrawal! ${amount} ${asset} withdrew to ${user}`.yellow.inverse);
             let balances = await this.getContractBalances(user);
-            let newBalance = balances[asset]*10**(-description.decimals);
+            // let newBalance = balances[asset]*10**(-description.decimals);
+            let newBalance = balances[asset];
 
             // If there is a client connected with the user event address
             if(clients[user]){

@@ -212,13 +212,15 @@ function forgedOrder(call, callback) {
 
 
 function getBalanceChanges(stream) {
+    const balances = new balanceMessages.BalanceChangesResponse();
+    const b = new balanceMessages.BalanceChangesResponse.Record();
+
     let socket = io.connect('http://localhost:3002');
     socket.emit('getAllChanges', {});
 
     socket.on('balanceChange', ({user, asset, newBalance}) =>{
-        console.log(data);
-        b.setAddress(Buffer.from(user, "hex"));
-        b.setAsset(Buffer.from(asset, "hex"));
+        b.setAddress(user);
+        b.setAsset(asset);
         b.setBalance(newBalance);
         balances.addBatch(b);
         stream.write(balances);

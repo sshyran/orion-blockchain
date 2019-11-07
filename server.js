@@ -218,10 +218,10 @@ function getBalanceChanges(stream) {
     let socket = io.connect('http://localhost:3002');
     socket.emit('getAllChanges', {});
 
-    socket.on('balanceChange', ({user, asset, newBalance}) =>{
-        b.setAddress(user);
-        b.setAsset(asset);
-        b.setBalance(newBalance);
+    socket.on('balanceChange', ({user, assetAddress, newBalance}) =>{
+        b.setAddress(new Uint8Array(web3.utils.hexToBytes(user)));
+        b.setAsset(new Uint8Array(web3.utils.hexToBytes(assetAddress)));
+        b.setBalance(newBalance * 10 **8);
         balances.addBatch(b);
         stream.write(balances);
     });

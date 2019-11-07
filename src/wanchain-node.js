@@ -154,11 +154,11 @@ class WanchainNode {
 
             // If there is a client connected with the user event address
             if(clients[user]){
-                io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance})
+                io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)});
             }
 
             // Emit event to all clients in room "all"
-            io.in('allChanges').emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance});
+            io.in('allChanges').emit('balanceChange',{ reason:"Deposit", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)});
 
 
         })
@@ -184,11 +184,11 @@ class WanchainNode {
 
             // If there is a client connected with the user event address
             if(clients[user]){
-                io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance})
+                io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)})
             }
 
              // Emit event to all clients in room "all"
-             io.in('allChanges').emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance});
+             io.in('allChanges').emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, assetAddress, newBalance, newWalletBalance:String(newWalletBalance)});
 
         })
 

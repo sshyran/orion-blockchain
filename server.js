@@ -7,8 +7,7 @@ const Web3 = require("web3");
 const web3 = new Web3("http://localhost:8545");
 const exchangeArtifact = require("./abis/Exchange.json");
 
-const io = require('socket.io-client')
-
+const io = require('socket.io-client');
 
 const wanAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "asset" address in balanaces
 const ERC20_ABI = require("./abis/erc20");
@@ -211,16 +210,18 @@ function forgedOrder(call, callback) {
     callback(null, resp);
 }
 
-// TODO: Where to get address
-function getBalanceChanges(stream, address) {
-    let socket = io.connect('http://localhost:3002');
-    socket.emit('clientAddress', address);
 
-    socket.on('balanceChange', ({user, asset, newBalance}) =>{
-        console.log(data);
-        b.setAddress(Buffer.from(user, "hex"));
-        b.setAsset(Buffer.from(asset, "hex"));
-        b.setBalance(newBalance);
+function getBalanceChanges(stream) {
+    const balances = new balanceMessages.BalanceChangesResponse();
+    const b = new balanceMessages.BalanceChangesResponse.Record();
+
+    let socket = io.connect('http://localhost:3002');
+    socket.emit('getAllChanges', {});
+
+    socket.on('balanceChange', ({user, assetAddress, newBalance}) =>{
+        b.setAddress(new Uint8Array(web3.utils.hexToBytes(user)));
+        b.setAsset(new Uint8Array(web3.utils.hexToBytes(assetAddress)));
+        b.setBalance(newBalance * 10 **8);
         balances.addBatch(b);
         stream.write(balances);
     });

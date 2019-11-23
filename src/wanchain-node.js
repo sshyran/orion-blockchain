@@ -106,14 +106,17 @@ class WanchainNode {
         
         const io = require('socket.io')(3002);
         io.on('connection', client => {
-           
-            console.log("New Client Connected", client.id);
 
-            // Upon connection, store clients address in object
-            client.on('clientAddress', address => { 
-                console.log("Received address from client", client.id, address); 
+            // Client suscribes to a specific address 
+            client.on('clientAddress', address => {
                 clients[address] = client.id;
-                console.log("Clients:", clients);
+                console.log(`Client ${client.id} suscribed to changes in address ${address}`);                
+            });
+
+            // Client joins all balance changes room
+            client.on('getAllChanges', () => {               
+                client.join('allChanges');
+                console.log(`Client ${client.id} suscribed to all balance Changes`);                
             });
 
             //When client disconnects, delete that record from object
@@ -146,12 +149,17 @@ class WanchainNode {
 
             console.log(`New Deposit! ${amount} ${asset} received from ${user}`.cyan.inverse);
             let balances = await this.getContractBalances(user);
-            let newBalance = balances[asset]*10**(-description.decimals);
+            // let newBalance = balances[asset]*10**(-description.decimals);
+            let newBalance = balances[asset];
 
             // If there is a client connected with the user event address
             if(clients[user]){
-                io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, amount, newBalance, newWalletBalance})
+                io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)});
             }
+
+            // Emit event to all clients in room "all"
+            io.in('allChanges').emit('balanceChange',{ reason:"Deposit", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)});
+
 
         })
 
@@ -171,12 +179,16 @@ class WanchainNode {
 
             console.log(`New Withdrawal! ${amount} ${asset} withdrew to ${user}`.yellow.inverse);
             let balances = await this.getContractBalances(user);
-            let newBalance = balances[asset]*10**(-description.decimals);
+            // let newBalance = balances[asset]*10**(-description.decimals);
+            let newBalance = balances[asset];
 
             // If there is a client connected with the user event address
             if(clients[user]){
-                io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, newBalance, newWalletBalance})
+                io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)})
             }
+
+             // Emit event to all clients in room "all"
+             io.in('allChanges').emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, assetAddress, newBalance, newWalletBalance:String(newWalletBalance)});
 
         })
 

@@ -138,29 +138,7 @@ class WanchainNode {
 
             let { user, assetAddress, amount} = event.returnValues;
 
-            let description = await this.assetDescription(assetAddress);
-            let asset = description.symbol;
-
-            amount = amount/(10**8);// because contract uses balances in 10 ^ 8 format
-
-
-            let newWalletBalance = await this.getWalletBalance(assetAddress, user);
-            
-
-            console.log(`New Deposit! ${amount} ${asset} received from ${user}`.cyan.inverse);
-            let balances = await this.getContractBalances(user);
-            // let newBalance = balances[asset]*10**(-description.decimals);
-            let newBalance = balances[asset];
-
-            // If there is a client connected with the user event address
-            if(clients[user]){
-                io.to(clients[user]).emit('balanceChange',{ reason:"Deposit", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)});
-            }
-
-            // Emit event to all clients in room "all"
-            io.in('allChanges').emit('balanceChange',{ reason:"Deposit", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)});
-
-
+            await notifyClient(this, user, assetAddress, amount, "Deposit");
         })
 
         contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) =>{
@@ -168,29 +146,41 @@ class WanchainNode {
 
             let { user, assetAddress, amount} = event.returnValues;
 
+            await notifyClient(this, user, assetAddress, amount, "Withdrawl");
+
+        })
+
+        contract.events.NewTrade({fromBlock}, async (error, event) =>{
+            if(error) return console.log(`Event error`.red) 
+
+            let { buyer, seller, baseAsset, quoteAsset, filledAmount, amountQuote} = event.returnValues;
+
+            await notifyClient(this, buyer, baseAsset, filledAmount, "Trade");
+            await notifyClient(this, seller, quoteAsset, amountQuote, "Trade");
+
+        })
+
+        async function notifyClient(self, user, assetAddress, amount, reason){
             let asset;
-
-            let description = await this.assetDescription(assetAddress);
+            let description = await self.assetDescription(assetAddress);
             asset = description.symbol;
-
             amount = amount/(10**8); // because contract uses balances in 10 ^ 8 format
+            let newWalletBalance = await self.getWalletBalance(assetAddress, user);
 
-            let newWalletBalance = await this.getWalletBalance(assetAddress, user);
+            console.log(`New ${reason}! ${amount} ${asset}. User: ${user}`.yellow.inverse);
 
-            console.log(`New Withdrawal! ${amount} ${asset} withdrew to ${user}`.yellow.inverse);
-            let balances = await this.getContractBalances(user);
-            // let newBalance = balances[asset]*10**(-description.decimals);
+            let balances = await self.getContractBalances(user);
             let newBalance = balances[asset];
 
             // If there is a client connected with the user event address
             if(clients[user]){
-                io.to(clients[user]).emit('balanceChange',{ reason:"Withdrawal", user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)})
+                io.to(clients[user]).emit('balanceChange',{ reason, user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)})
             }
 
              // Emit event to all clients in room "all"
-             io.in('allChanges').emit('balanceChange',{ reason:"Withdrawal", user, asset, amount, assetAddress, newBalance, newWalletBalance:String(newWalletBalance)});
+             io.in('allChanges').emit('balanceChange',{ reason, user, asset, amount, assetAddress, newBalance, newWalletBalance:String(newWalletBalance)});
 
-        })
+        }
 
         
     }

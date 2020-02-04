@@ -20,6 +20,7 @@
     "google-protobuf": "^3.0.0",
     "grpc": "^1.11.0",
     "grpc-methods": "github:kinesis-exchange/grpc-methods",
+    "mongoose": "^5.8.11",
     "node-fetch": "^2.3.0",
     "rxjs": "^6.3.3",
     "rxjs-compat": "^6.3.3",
@@ -30,8 +31,8 @@
     "ws": "^6.1.0"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
     "grpc-tools": "^1.8.0",
-    "grpc_tools_node_protoc_ts": "^2.5.4"
+    "grpc_tools_node_protoc_ts": "^2.5.4",
+    "mocha": "^5.2.0"
   }
 }

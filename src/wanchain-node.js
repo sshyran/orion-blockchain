@@ -1,9 +1,9 @@
 const axios = require('axios');
 const { Assets} = require('./orion-matcher')
 const Web3 = require("web3");
+const History = require("./models/history");
 const web3 = new Web3("http://localhost:8545"); // Wanchain Testnet running locally
 const web3Websocket = new Web3(`ws://127.0.0.1:8546`);
-
 const _ = require("lodash")
 
 
@@ -168,6 +168,15 @@ class WanchainNode {
             let newWalletBalance = await self.getWalletBalance(assetAddress, user);
 
             console.log(`New ${reason}! ${amount} ${asset}. User: ${user}`.yellow.inverse);
+
+            const history = {
+                type: reason.toLowerCase(),
+                asset: asset.toLowerCase(),
+                amount,
+                user
+            }
+
+            History.create(history)
 
             let balances = await self.getContractBalances(user);
             let newBalance = balances[asset];

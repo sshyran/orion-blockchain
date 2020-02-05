@@ -56,7 +56,7 @@ app.get('/api/balanceChanges/:address', async (req, res) => {
 
 app.get('/api/history/:address', async (req, res) => {
     const { address } = req.params;
-    const histories = await History.find({ user: address }, 'type asset amount user').exec()
+    const histories = await History.find({ user: address }, 'type asset amount user created_at').exec()
     res.status(200).send(histories);
 })
 

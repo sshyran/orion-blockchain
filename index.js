@@ -3,6 +3,8 @@ const app = express();
 const { WanchainNode } = require('./src/wanchain-node');
 const { OrionMatcher } = require('./src/orion-matcher');
 const { getServer } = require('./server');
+const mongoose = require('mongoose');
+const History = require('./src/models/history')
 
 // Suscribe to deposits and withdrawl events
 WanchainNode.watchBalanceChange();
@@ -52,6 +54,12 @@ app.get('/api/balanceChanges/:address', async (req, res) => {
     res.status(200).send({...changeEvents});
 })
 
+app.get('/api/history/:address', async (req, res) => {
+    const { address } = req.params;
+    const histories = await History.find({ user: address }, 'type asset amount user created_at').exec()
+    res.status(200).send(histories);
+})
+
 app.post('/api/order', async (req, res) => {
     const order = req.body;
 
@@ -69,6 +77,18 @@ app.post('/api/order', async (req, res) => {
 app.listen(3001, function () {
     console.log('Orion-Wanchain app listening on http://localhost:3001/');
 });
+
+// Database --------------
+
+process.env.URL_DB = 'mongodb://localhost:27017/orion-wanchain'
+
+mongoose.connect(process.env.URL_DB, {  useUnifiedTopology: true, useNewUrlParser: true }, (err, res) => {
+	if (err) throw err;
+
+	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
+});
+
+
 
 const routeServer = getServer();
 routeServer.start();

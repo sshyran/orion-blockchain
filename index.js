@@ -1,13 +1,15 @@
 const express = require('express');
 const app = express();
 const { WanchainNode } = require('./src/wanchain-node');
+const { InfuraNode } = require('./src/infura-node');
 const { OrionMatcher } = require('./src/orion-matcher');
 const { getServer } = require('./server');
 const mongoose = require('mongoose');
 const History = require('./src/models/history')
 
 // Suscribe to deposits and withdrawl events
-WanchainNode.watchBalanceChange();
+// WanchainNode.watchBalanceChange();
+InfuraNode.watchBalanceChange();
 
 app.use(express.json());
 
@@ -80,13 +82,13 @@ app.listen(3001, function () {
 
 // Database --------------
 
-process.env.URL_DB = 'mongodb://localhost:27017/orion-wanchain'
+// process.env.URL_DB = 'mongodb://localhost:27017/orion-wanchain'
 
-mongoose.connect(process.env.URL_DB, {  useUnifiedTopology: true, useNewUrlParser: true }, (err, res) => {
-	if (err) throw err;
+// mongoose.connect(process.env.URL_DB, {  useUnifiedTopology: true, useNewUrlParser: true }, (err, res) => {
+// 	if (err) throw err;
 
-	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
-});
+// 	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
+// });
 
 
 

@@ -18,15 +18,16 @@ const Contracts = {
     wbtc: new web3.eth.Contract(WBTCArtifact.abi, WBTCArtifact.networks["3"].address)
 }
 
-const ethAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "asset" address in balanaces
+const ethAssetAddress = "0x0000000000000000000000000000000000000000"; // ETH  "asset" address in balanaces
 
 class InfuraNode {
 
     static formatValue(value){
-        return value.toLocaleString('en-US', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 8
-        });
+        return value
+        // return value.toLocaleString('en-US', {
+        //     minimumFractionDigits: 0,
+        //     maximumFractionDigits: 8
+        // });
     }
 
     static async getWalletBalances(address) {
@@ -36,7 +37,7 @@ class InfuraNode {
         let balanceWBTC =  await this.getWalletBalance(Contracts.wbtc._address, address)
 
         return {
-            'WAN': this.formatValue(balanceEth),
+            'ETH': this.formatValue(balanceEth),
             'WETH': this.formatValue(balanceWETH),
             'WBTC': this.formatValue(balanceWBTC),
         }
@@ -51,7 +52,6 @@ class InfuraNode {
         const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
         const balance = await token.methods.balanceOf(userAddress).call();
         const decimals = await token.methods.decimals().call();
-        
         return balance*10**(-decimals);
     }
 
@@ -60,7 +60,7 @@ class InfuraNode {
         let balances = await Contracts.exchange.methods.getBalances(assets, address).call();
 
         return {
-            'WAN': this.formatValue(balances[0]/10**8),
+            'ETH': this.formatValue(balances[0]/10**8),
             'WETH': this.formatValue(balances[1]/10**8),
             'WBTC': this.formatValue(balances[2]/10**8),
         }
@@ -68,7 +68,7 @@ class InfuraNode {
     }
 
     static async assetDescription(assetAddress){
-        if(assetAddress === ethAssetAddress) return {name: 'Ethchain', symbol: "WAN", decimals: 18}
+        if(assetAddress === ethAssetAddress) return {name: 'Ether', symbol: "ETH", decimals: 18}
         const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
         const name = await token.methods.name().call();
         const symbol = await token.methods.symbol().call();
@@ -121,9 +121,6 @@ class InfuraNode {
                 console.log("Clients:", clients);
             })
         });
-
-        // Geth command used to run geth: 
-        // ./geth --ws --wsapi eth,net,admin,personal,eth --wsorigins="*" --rpc --testnet --rpcapi eth,net,admin,personal,eth console
 
         const fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
         let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
@@ -192,15 +189,3 @@ class InfuraNode {
 module.exports = {
     InfuraNode
 };
-
-// const subscription = web3Websocket.eth.subscribe('newBlockHeaders', (error, blockHeader) => {
-//     if (error) return console.error(error);
-    
-//     console.log('Successfully subscribed!', blockHeader);
-// })
-//     .on('data', (blockHeader) => {
-//         console.log('data: ', blockHeader);
-//     });
-
-// web3.eth.getBalance("0x7F8e61f666043439572b1E2135aeE18b27c0662D")
-// .then(console.log);

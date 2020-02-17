@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const History = require('./src/models/history')
 
 // Suscribe to deposits and withdrawl events
-// WanchainNode.watchBalanceChange();
+WanchainNode.watchBalanceChange();
 InfuraNode.watchBalanceChange();
 
 app.use(express.json());
@@ -20,6 +20,7 @@ app.use((req, res, next) => {
 });
 
 
+// -------------------------- Wanchain ----------------------------------------
 /**
  * {
  *     "BTC": [
@@ -56,6 +57,35 @@ app.get('/api/balanceChanges/:address', async (req, res) => {
     res.status(200).send({...changeEvents});
 })
 
+//------------------------- Ethereum ------------------------------------------------
+
+app.get('/api/eth/balance/:address', async (req, res) => {
+    const address = req.params.address;
+
+    // Get wallet balances from Ethereum node
+    const walletBalances = await InfuraNode.getWalletBalances(address);
+    // Get contract balance for that address
+    const contractBalances = await InfuraNode.getContractBalances(address);
+
+    // TODO: Reserved balance from Orion Matcher
+    // const contractBalances = await InfuraNode.getBalances(req.params.address);
+
+    res.status(200).send({walletBalances, contractBalances});
+});
+
+app.get('/api/eth/description/:assetAddress', async (req, res) => {
+    const assetAddress = req.params.assetAddress;
+    const description = await InfuraNode.assetDescription(assetAddress);
+    res.status(200).send({...description});
+})
+
+app.get('/api/eth/balanceChanges/:address', async (req, res) => {
+    const address = req.params.address;
+    const changeEvents = await InfuraNode.getBalanceChanges(address);
+    res.status(200).send({...changeEvents});
+})
+
+// -------------------------------------------------------------------------------------
 app.get('/api/history/:address', async (req, res) => {
     const { address } = req.params;
     const histories = await History.find({ user: address }, 'type asset amount user created_at').exec()
@@ -89,8 +119,6 @@ app.listen(3001, function () {
 
 // 	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
 // });
-
-
 
 const routeServer = getServer();
 routeServer.start();

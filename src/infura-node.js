@@ -1,10 +1,7 @@
-// const axios = require('axios');
-// const { Assets} = require('./orion-matcher')
 const Web3 = require("web3");
+const web3 = new Web3("https://ropsten.infura.io/v3/e7e50056370b47e0b71bdbc746887727");
+const web3Websocket = new Web3(`wss://ropsten.infura.io/ws/v3/e7e50056370b47e0b71bdbc746887727`);
 const History = require("./models/history");
-const web3 = new Web3("http://localhost:8545"); // Wanchain Testnet running locally
-const web3Websocket = new Web3(`ws://127.0.0.1:8546`);
-const _ = require("lodash")
 
 require('colors');
 
@@ -21,10 +18,9 @@ const Contracts = {
     wbtc: new web3.eth.Contract(WBTCArtifact.abi, WBTCArtifact.networks["3"].address)
 }
 
-const wanAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "asset" address in balanaces
+const ethAssetAddress = "0x0000000000000000000000000000000000000000"; // WAN  "asset" address in balanaces
 
-
-class WanchainNode {
+class InfuraNode {
 
     static formatValue(value){
         return value.toLocaleString('en-US', {
@@ -35,21 +31,21 @@ class WanchainNode {
 
     static async getWalletBalances(address) {
 
-        let balanceWan = await this.getWalletBalance(wanAssetAddress, address)
+        let balanceEth = await this.getWalletBalance(ethAssetAddress, address)
         let balanceWETH =  await this.getWalletBalance(Contracts.weth._address, address)
         let balanceWBTC =  await this.getWalletBalance(Contracts.wbtc._address, address)
 
         return {
-            'WAN': this.formatValue(balanceWan),
+            'WAN': this.formatValue(balanceEth),
             'WETH': this.formatValue(balanceWETH),
             'WBTC': this.formatValue(balanceWBTC),
         }
     }
 
     static async getWalletBalance(assetAddress, userAddress){
-        if(assetAddress === wanAssetAddress){
-            let wanBalance = await web3.eth.getBalance(userAddress);
-            return web3.utils.fromWei(wanBalance.toString())
+        if(assetAddress === ethAssetAddress){
+            let ethBalance = await web3.eth.getBalance(userAddress);
+            return web3.utils.fromWei(ethBalance.toString())
         }
 
         const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
@@ -60,7 +56,7 @@ class WanchainNode {
     }
 
     static async getContractBalances(address) {
-        const assets = [wanAssetAddress, Contracts.weth._address, Contracts.wbtc._address];
+        const assets = [ethAssetAddress, Contracts.weth._address, Contracts.wbtc._address];
         let balances = await Contracts.exchange.methods.getBalances(assets, address).call();
 
         return {
@@ -72,7 +68,7 @@ class WanchainNode {
     }
 
     static async assetDescription(assetAddress){
-        if(assetAddress === wanAssetAddress) return {name: 'Wanchain', symbol: "WAN", decimals: 18}
+        if(assetAddress === ethAssetAddress) return {name: 'Ethchain', symbol: "WAN", decimals: 18}
         const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
         const name = await token.methods.name().call();
         const symbol = await token.methods.symbol().call();
@@ -126,8 +122,8 @@ class WanchainNode {
             })
         });
 
-        // Gwan command used to run gwan: 
-        // ./gwan --ws --wsapi eth,net,admin,personal,wan --wsorigins="*" --rpc --testnet --rpcapi eth,net,admin,personal,wan console
+        // Geth command used to run geth: 
+        // ./geth --ws --wsapi eth,net,admin,personal,eth --wsorigins="*" --rpc --testnet --rpcapi eth,net,admin,personal,eth console
 
         const fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
         let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
@@ -186,7 +182,7 @@ class WanchainNode {
             }
 
              // Emit event to all clients in room "all"
-             io.in('allChanges').emit('balanceChange',{ reason, user, asset, amount, assetAddress, newBalance, newWalletBalance:String(newWalletBalance)});
+            io.in('allChanges').emit('balanceChange',{ reason, user, asset, amount, assetAddress, newBalance, newWalletBalance:String(newWalletBalance)});
 
         }
         
@@ -194,5 +190,17 @@ class WanchainNode {
 }
 
 module.exports = {
-    WanchainNode
+    InfuraNode
 };
+
+// const subscription = web3Websocket.eth.subscribe('newBlockHeaders', (error, blockHeader) => {
+//     if (error) return console.error(error);
+    
+//     console.log('Successfully subscribed!', blockHeader);
+// })
+//     .on('data', (blockHeader) => {
+//         console.log('data: ', blockHeader);
+//     });
+
+// web3.eth.getBalance("0x7F8e61f666043439572b1E2135aeE18b27c0662D")
+// .then(console.log);

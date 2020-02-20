@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require('express');
 const app = express();
 const { WanchainNode } = require('./src/wanchain-node');
@@ -6,6 +8,8 @@ const { OrionMatcher } = require('./src/orion-matcher');
 const { getServer } = require('./server');
 const mongoose = require('mongoose');
 const History = require('./src/models/history')
+const Web3 = require("web3");
+const web3 = new Web3()
 
 // Suscribe to deposits and withdrawl events
 // WanchainNode.watchBalanceChange();
@@ -112,13 +116,15 @@ app.listen(3001, function () {
 
 // Database --------------
 
-// process.env.URL_DB = 'mongodb://localhost:27017/orion-wanchain'
+mongoose.connect(process.env.DB_URI, {  
+    auth: {authSource: process.env.DB_AUTH},
+    useUnifiedTopology: true, 
+    useNewUrlParser: true 
+}, (err, res) => {
+	if (err) throw err;
 
-// mongoose.connect(process.env.URL_DB, {  useUnifiedTopology: true, useNewUrlParser: true }, (err, res) => {
-// 	if (err) throw err;
-
-// 	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
-// });
+	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
+});
 
 // const routeServer = getServer();
 // routeServer.start();

@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const History = require('./src/models/history')
 
 // Suscribe to deposits and withdrawl events
-WanchainNode.watchBalanceChange();
+// WanchainNode.watchBalanceChange();
 InfuraNode.watchBalanceChange();
 
 app.use(express.json());
@@ -120,5 +120,5 @@ app.listen(3001, function () {
 // 	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
 // });
 
-const routeServer = getServer();
-routeServer.start();
+// const routeServer = getServer();
+// routeServer.start();

@@ -2,6 +2,7 @@ const Web3 = require("web3");
 const web3 = new Web3("https://ropsten.infura.io/v3/e7e50056370b47e0b71bdbc746887727");
 const web3Websocket = new Web3(`wss://ropsten.infura.io/ws/v3/e7e50056370b47e0b71bdbc746887727`);
 const History = require("./models/history");
+const _ = require("lodash")
 
 require('colors');
 
@@ -101,7 +102,6 @@ class InfuraNode {
         
         const io = require('socket.io')(3002);
         io.on('connection', client => {
-
             // Client suscribes to a specific address 
             client.on('clientAddress', address => {
                 clients[address] = client.id;
@@ -137,7 +137,6 @@ class InfuraNode {
             if(error) return console.log(`Event error`.red) 
 
             let { user, assetAddress, amount} = event.returnValues;
-
             await notifyClient(this, user, assetAddress, amount, "Withdrawl");
 
         })

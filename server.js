@@ -4,7 +4,13 @@ const balanceMessages = require('./generated/balances_api_pb');
 const balanceServices = require('./generated/balances_api_grpc_pb');
 const { GrpcServerStreamingMethod } = require('grpc-methods');
 const Web3 = require("web3");
-const web3 = new Web3("http://localhost:8545");
+const HDWalletProvider = require('truffle-hdwallet-provider');
+const hdProvider = new HDWalletProvider(
+    process.env.MNEMOMIC,
+    `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    2
+);
+const web3 = new Web3(hdProvider);
 const exchangeArtifact = require("./abis/Exchange.json");
 
 const io = require('socket.io-client');
@@ -82,7 +88,7 @@ async function fillOrdersByMatcher(
             fillPrice,
             fillAmount
         )
-        .send({ from: accounts[0], gas: 1e6 }); //matcher address is accounts 0
+        .send({ from: hdProvider.getAddress(), gas: 1e6 }); //matcher address is accounts 0
 }
 
 
@@ -110,13 +116,13 @@ async function broadcast(call, callback) {
     const resp = new messages.BroadcastResponse();
     try {
         let response = await fillOrdersByMatcher(
-                buyOrder,
-                sellOrder,
-                buySig,
-                sellSig,
-                fillPrice,
-                fillAmount
-            )
+            buyOrder,
+            sellOrder,
+            buySig,
+            sellSig,
+            fillPrice,
+            fillAmount
+        );
         console.log("\nTransaction successful? ", response.status);
         console.log("New Trade Event:\n", response.events.NewTrade.returnValues);
 
@@ -130,7 +136,7 @@ async function broadcast(call, callback) {
 }
 
 async function getAssetDetails(assetAddress){
-    if(assetAddress === wanAssetAddress) return {name: 'Wanchain', symbol: "WAN", decimals: 18}
+    if(assetAddress === wanAssetAddress) return {name: 'Ethereum', symbol: "ETH", decimals: 18};
     const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
     const name = await token.methods.name().call();
     const symbol = await token.methods.symbol().call();

@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const express = require('express');
 const app = express();
-const { WanchainNode } = require('./src/wanchain-node');
 const { InfuraNode } = require('./src/infura-node');
 const { OrionMatcher } = require('./src/orion-matcher');
 const { getServer } = require('./server');
@@ -39,25 +38,25 @@ app.get('/api/balance/:address', async (req, res) => {
     const address = req.params.address;
 
     // Get wallet balances from Wanchain node
-    const walletBalances = await WanchainNode.getWalletBalances(address);
+    const walletBalances = await InfuraNode.getWalletBalances(address);
     // Get contract balance for that address
-    const contractbalances = await WanchainNode.getContractBalances(address);
+    const contractbalances = await InfuraNode.getContractBalances(address);
 
     // TODO: Reserved balance from Orion Matcher
-    // const contractbalances = await WanchainNode.getBalances(req.params.address);
+    // const contractbalances = await InfuraNode.getBalances(req.params.address);
 
     res.status(200).send({walletBalances, contractbalances});
 });
 
 app.get('/api/description/:assetAddress', async (req, res) => {
     const assetAddress = req.params.assetAddress;
-    const description = await WanchainNode.assetDescription(assetAddress);
+    const description = await InfuraNode.assetDescription(assetAddress);
     res.status(200).send({...description});
 })
 
 app.get('/api/balanceChanges/:address', async (req, res) => {
     const address = req.params.address;
-    const changeEvents = await WanchainNode.getBalanceChanges(address);
+    const changeEvents = await InfuraNode.getBalanceChanges(address);
     res.status(200).send({...changeEvents});
 })
 
@@ -126,5 +125,5 @@ mongoose.connect(process.env.DB_URI, {
 	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
 });
 
-// const routeServer = getServer();
-// routeServer.start();
+const routeServer = getServer();
+routeServer.start();

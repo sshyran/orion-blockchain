@@ -9,7 +9,7 @@ const OrionSettings = {
 
 const Assets = {
     BTC: WBTCArtifact.networks["3"].address,
-    ETH: WETHArtifact.networks["3"].address,
+    ETH: "0x0000000000000000000000000000000000000000",
 
     toSymbolAsset: function(asset) {
         switch (asset) {
@@ -130,6 +130,7 @@ class OrionMatcher {
 
     static async submitToOrion(blockchainOrder) {
         const orionOrder = this.toOrionOrder(blockchainOrder);
+        console.log("Submitting OrionOrder: ", JSON.stringify(orionOrder));
 
         return OrionMatcher.orionHttp().post('/api/v1/order', orionOrder)
             .then((res) => {

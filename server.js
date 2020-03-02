@@ -115,18 +115,20 @@ async function broadcast(call, callback) {
 
     const resp = new messages.BroadcastResponse();
     try {
-        let response = await fillOrdersByMatcher(
+        fillOrdersByMatcher(
             buyOrder,
             sellOrder,
             buySig,
             sellSig,
             fillPrice,
             fillAmount
-        );
-        console.log("\nTransaction successful? ", response.status);
-        console.log("New Trade Event:\n", response.events.NewTrade.returnValues);
+        ).then(response => {
+            console.log("\nTransaction successful? ", response.status);
+            console.log("New Trade Event:\n", response.events.NewTrade.returnValues);
+            return response;
+        });
 
-        resp.setIsValid(response.status);
+        resp.setIsValid(true);
     } catch (e) {
         console.log("Error occured during fillOrders", e);
         resp.setIsValid(false);
@@ -229,7 +231,7 @@ function getBalanceChanges(stream) {
         b.setAsset(new Uint8Array(web3.utils.hexToBytes(assetAddress)));
         b.setBalance(newBalance * 10 **8);
         balances.addBatch(b);
-        stream.write(balances);
+        //stream.write(balances);
     });
 }
 

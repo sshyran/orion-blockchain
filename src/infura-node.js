@@ -69,7 +69,7 @@ class InfuraNode {
     }
 
     static async assetDescription(assetAddress){
-        if(assetAddress === ethAssetAddress) return {name: 'Ether', symbol: "ETH", decimals: 18}
+        if (!assetAddress || assetAddress === ethAssetAddress) return {name: 'Ether', symbol: "ETH", decimals: 18}
         const token = new web3.eth.Contract(ERC20_ABI, assetAddress)
         const name = await token.methods.name().call();
         const symbol = await token.methods.symbol().call();
@@ -137,7 +137,7 @@ class InfuraNode {
             if(error) return console.log(`Event error`.red) 
 
             let { user, assetAddress, amount} = event.returnValues;
-            await notifyClient(this, user, assetAddress, amount, "Withdrawl");
+            await notifyClient(this, user, assetAddress, amount, "Withdrawal");
 
         })
 

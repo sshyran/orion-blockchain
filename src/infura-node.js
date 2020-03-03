@@ -125,60 +125,67 @@ class InfuraNode {
         const fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
         let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
 
-        contract.events.NewAssetDeposit({fromBlock}, async (error, event) =>{
-            if(error) return console.log(`Event error: ${error}`.red)
+        contract.events.NewAssetDeposit({fromBlock}, async (error, event) => {
+            if (error) return console.log(`Event error: ${error}`.red);
 
-            let { user, assetAddress, amount} = event.returnValues;
+            let {user, assetAddress, amount} = event.returnValues;
+            const asset = (await this.assetDescription(assetAddress)).symbol.toUpperCase();
+            console.log(`New Deposit! ${amount} ${asset}. User: ${user}`.yellow.inverse);
 
-            await notifyClient(this, user, assetAddress, amount, "Deposit");
-        })
+            await saveTransactionHistory(this, user, asset, amount, "Deposit");
+            await notifyClient(this, user, assetAddress, asset, amount);
+        });
 
         contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) =>{
             if(error) return console.log(`Event error`.red) 
 
             let { user, assetAddress, amount} = event.returnValues;
-            await notifyClient(this, user, assetAddress, amount, "Withdrawal");
+            const asset = (await this.assetDescription(assetAddress)).symbol.toUpperCase();
+            console.log(`New Withdrawal! ${amount} ${asset}. User: ${user}`.yellow.inverse);
 
-        })
+            await saveTransactionHistory(this, user, asset, amount, "Withdrawal");
+            await notifyClient(this, user, assetAddress, asset, amount);
+        });
 
-        contract.events.NewTrade({fromBlock}, async (error, event) =>{
-            if(error) return console.log(`Event error`.red) 
+        function money(amount, symbol) {
+            return  Number((amount / 10**8).toFixed(8)) + ` ${symbol}`;
+        }
 
-            let { buyer, seller, baseAsset, quoteAsset, filledAmount, amountQuote} = event.returnValues;
+        contract.events.NewTrade({fromBlock}, async (error, event) => {
+            if (error) return console.log(`Event error`.red);
 
-            await notifyClient(this, buyer, baseAsset, filledAmount, "Trade");
-            await notifyClient(this, seller, quoteAsset, amountQuote, "Trade");
+            let {buyer, seller, baseAsset, quoteAsset, filledAmount, amountQuote} = event.returnValues;
+            const baseSymbol = (await this.assetDescription(baseAsset)).symbol.toUpperCase();
+            const quoteSymbol = (await this.assetDescription(quoteAsset)).symbol.toUpperCase();
 
-        })
+            console.log(`New Trade! ${money(filledAmount, baseSymbol)}/${money(amountQuote, quoteSymbol)} , Total:. Buyer: ${buyer}. Seller: ${seller}`.yellow.inverse);
 
-        async function notifyClient(self, user, assetAddress, amount, reason){
-            let asset;
-            let description = await self.assetDescription(assetAddress);
-            asset = description.symbol;
-            amount = amount/(10**8); // because contract uses balances in 10 ^ 8 format
-            let newWalletBalance = await self.getWalletBalance(assetAddress, user);
+            await notifyClient(this, buyer, baseAsset, baseSymbol, filledAmount);
+            await notifyClient(this, buyer, quoteAsset, quoteSymbol, amountQuote);
+            await notifyClient(this, seller, baseAsset, baseSymbol, filledAmount);
+            await notifyClient(this, seller, quoteAsset, quoteSymbol, amountQuote);
+        });
 
-            console.log(`New ${reason}! ${amount} ${asset}. User: ${user}`.yellow.inverse);
-
+        function saveTransactionHistory(self, user, asset, amount, reason) {
             const history = {
                 type: reason.toLowerCase(),
                 asset: asset.toLowerCase(),
                 amount,
                 user
-            }
+            };
+            return History.create(history);
+        }
 
-            History.create(history)
-
-            let balances = await self.getContractBalances(user);
-            let newBalance = balances[asset];
-
+        async function notifyClient(self, user, assetAddress, asset, amount) {
             // If there is a client connected with the user event address
             if(clients[user]){
-                io.to(clients[user]).emit('balanceChange',{ reason, user, asset, assetAddress, amount, newBalance, newWalletBalance:String(newWalletBalance)})
+                console.log("Notifying", user);
+                const newWalletBalance = await self.getWalletBalance(assetAddress, user);
+                const balances = await self.getContractBalances(user);
+                const newBalance = balances[asset];
+                io.to(clients[user]).emit('x',{
+                    user, asset, assetAddress, amount, newBalance, newWalletBalance: String(newWalletBalance)})
             }
-
-             // Emit event to all clients in room "all"
-            io.in('allChanges').emit('balanceChange',{ reason, user, asset, amount, assetAddress, newBalance, newWalletBalance:String(newWalletBalance)});
 
         }
         

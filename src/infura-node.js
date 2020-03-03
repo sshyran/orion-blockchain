@@ -1,8 +1,8 @@
 const Web3 = require("web3");
 const web3 = new Web3("https://ropsten.infura.io/v3/e7e50056370b47e0b71bdbc746887727");
-const web3Websocket = new Web3(`wss://ropsten.infura.io/ws/v3/e7e50056370b47e0b71bdbc746887727`);
+const web3Websocket = require("./infuraWeb3");
 const History = require("./models/history");
-const _ = require("lodash")
+const _ = require("lodash");
 
 require('colors');
 
@@ -17,7 +17,7 @@ const Contracts = {
     exchange: new web3.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address),
     weth: new web3.eth.Contract(WETHArtifact.abi, WETHArtifact.networks["3"].address),
     wbtc: new web3.eth.Contract(WBTCArtifact.abi, WBTCArtifact.networks["3"].address)
-}
+};
 
 const ethAssetAddress = "0x0000000000000000000000000000000000000000"; // ETH  "asset" address in balanaces
 

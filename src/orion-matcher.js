@@ -16,6 +16,8 @@ const Assets = {
                 return 'BTC';
             case this.ETH:
                 return 'ETH';
+            case this.XRP:
+                return 'XRP';
             default:
                 return 'BTC';
         }

@@ -1,6 +1,4 @@
 const axios = require('axios');
-const WETHArtifact = require("../abis/WETH.json");
-const WBTCArtifact = require("../abis/WBTC.json");
 
 const OrionSettings = {
     matcherUrl: 'https://demo.orionprotocol.io/matcher',
@@ -8,8 +6,9 @@ const OrionSettings = {
 };
 
 const Assets = {
-    BTC: WBTCArtifact.networks["3"].address,
+    BTC: "0x335123EB7029030805864805fC95f1AB16A64D61",
     ETH: "0x0000000000000000000000000000000000000000",
+    XRP: "0x15a3Eb660823e0a3eF4D4A86EEC0d66f405Db515",
 
     toSymbolAsset: function(asset) {
         switch (asset) {

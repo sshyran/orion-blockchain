@@ -7,16 +7,18 @@ const _ = require("lodash");
 require('colors');
 
 // Artifacts
-const WETHArtifact = require("../abis/WETH.json");
 const WBTCArtifact = require("../abis/WBTC.json");
 const exchangeArtifact = require("../abis/Exchange.json");
 
 const ERC20_ABI = require("../abis/erc20");
 
 const Contracts = {
-    exchange: new web3.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address),
-    weth: new web3.eth.Contract(WETHArtifact.abi, WETHArtifact.networks["3"].address),
-    wbtc: new web3.eth.Contract(WBTCArtifact.abi, WBTCArtifact.networks["3"].address)
+    exchange: new web3.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
+};
+
+const Tokens = {
+    wbtc: "0x335123EB7029030805864805fC95f1AB16A64D61",
+    wxrp: "0x15a3Eb660823e0a3eF4D4A86EEC0d66f405Db515"
 };
 
 const ethAssetAddress = "0x0000000000000000000000000000000000000000"; // ETH  "asset" address in balanaces
@@ -33,14 +35,14 @@ class InfuraNode {
 
     static async getWalletBalances(address) {
 
-        let balanceEth = await this.getWalletBalance(ethAssetAddress, address)
-        let balanceWETH =  await this.getWalletBalance(Contracts.weth._address, address)
-        let balanceWBTC =  await this.getWalletBalance(Contracts.wbtc._address, address)
+        let balanceEth = await this.getWalletBalance(ethAssetAddress, address);
+        let balanceWBTC = await this.getWalletBalance(Tokens.wbtc, address);
+        let balanceWXRP = await this.getWalletBalance(Tokens.wxrp, address);
 
         return {
             'ETH': this.formatValue(balanceEth),
-            'WETH': this.formatValue(balanceWETH),
             'WBTC': this.formatValue(balanceWBTC),
+            'WXRP': this.formatValue(balanceWXRP),
         }
     }
 
@@ -57,13 +59,13 @@ class InfuraNode {
     }
 
     static async getContractBalances(address) {
-        const assets = [ethAssetAddress, Contracts.weth._address, Contracts.wbtc._address];
+        const assets = [ethAssetAddress, Tokens.wbtc, Tokens.wxrp];
         let balances = await Contracts.exchange.methods.getBalances(assets, address).call();
 
         return {
             'ETH': this.formatValue(balances[0]/10**8),
-            'WETH': this.formatValue(balances[1]/10**8),
-            'WBTC': this.formatValue(balances[2]/10**8),
+            'WBTC': this.formatValue(balances[1]/10**8),
+            'WXRP': this.formatValue(balances[2]/10**8),
         }
 
     }

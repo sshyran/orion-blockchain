@@ -100,26 +100,39 @@ class InfuraNode {
 
     static async watchBalanceChange (){
 
-        let clients ={};
+        let clients = {};
+        let clientAddresses = {};
         
         const io = require('socket.io')(3002);
         io.on('connection', client => {
             // Client suscribes to a specific address 
             client.on('clientAddress', address => {
-                clients[address] = client.id;
-                console.log(`Client ${client.id} suscribed to changes in address ${address}`);                
+                if (!clients[address]) {
+                    clients[address] = new Set();
+                }
+                clients[address].add(client.id);
+                clientAddresses[client.id] = address;
+                console.log(`Client ${client.id} suscribed to changes in address ${address}`);
+                client.join(address);
             });
 
             // Client joins all balance changes room
-            client.on('getAllChanges', () => {               
+            client.on('getAllChanges', () => {
                 client.join('allChanges');
-                console.log(`Client ${client.id} suscribed to all balance Changes`);                
+                console.log(`Client ${client.id} suscribed to all balance Changes`);
             });
 
             //When client disconnects, delete that record from object
             client.on('disconnect', () => { 
-                console.log("client disconnected"); 
-                clients = _.omitBy(clients, (value, key) => value === client.id);
+                console.log("client disconnected");
+                const addr = clientAddresses[client.id];
+                if (clients[addr]) {
+                    clients[addr].delete(client.id);
+                    if (clients[addr].size === 0) {
+                        delete clients[addr];
+                    }
+                }
+                delete clientAddresses[client.id];
                 console.log("Clients:", clients);
             })
         });
@@ -180,12 +193,12 @@ class InfuraNode {
 
         async function notifyClient(self, user, assetAddress, asset, amount) {
             // If there is a client connected with the user event address
-            if(clients[user]){
+            if (clients[user]){
                 console.log("Notifying", user);
                 const newWalletBalance = await self.getWalletBalance(assetAddress, user);
                 const balances = await self.getContractBalances(user);
                 const newBalance = balances[asset];
-                io.to(clients[user]).emit('x',{
+                io.to(user).emit('balanceChange',{
                     user, asset, assetAddress, amount, newBalance, newWalletBalance: String(newWalletBalance)})
             }
 

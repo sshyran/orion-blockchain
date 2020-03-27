@@ -182,6 +182,9 @@ class InfuraNode {
         });
 
         function saveTransactionHistory(self, user, asset, amount, reason) {
+
+            amount = amount / 10**8
+            
             const history = {
                 type: reason.toLowerCase(),
                 asset: asset.toLowerCase(),

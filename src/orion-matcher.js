@@ -9,6 +9,7 @@ const Assets = {
     BTC: "0x335123EB7029030805864805fC95f1AB16A64D61",
     ETH: "0x0000000000000000000000000000000000000000",
     XRP: "0x15a3Eb660823e0a3eF4D4A86EEC0d66f405Db515",
+    USDT: "0xfe2277A8790C6CFfA33bfe832D186385C45201A0",
 
     toSymbolAsset: function(asset) {
         switch (asset) {
@@ -18,6 +19,8 @@ const Assets = {
                 return 'ETH';
             case this.XRP:
                 return 'XRP';
+            case this.USDT:
+                return 'USDT';
             default:
                 return 'BTC';
         }

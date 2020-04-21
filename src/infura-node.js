@@ -18,7 +18,8 @@ const Contracts = {
 
 const Tokens = {
     wbtc: "0x335123EB7029030805864805fC95f1AB16A64D61",
-    wxrp: "0x15a3Eb660823e0a3eF4D4A86EEC0d66f405Db515"
+    wxrp: "0x15a3Eb660823e0a3eF4D4A86EEC0d66f405Db515",
+    usdt: "0xfe2277A8790C6CFfA33bfe832D186385C45201A0"
 };
 
 const ethAssetAddress = "0x0000000000000000000000000000000000000000"; // ETH  "asset" address in balanaces
@@ -38,11 +39,13 @@ class InfuraNode {
         let balanceEth = await this.getWalletBalance(ethAssetAddress, address);
         let balanceWBTC = await this.getWalletBalance(Tokens.wbtc, address);
         let balanceWXRP = await this.getWalletBalance(Tokens.wxrp, address);
+        let balanceUSDT = await this.getWalletBalance(Tokens.usdt, address);
 
         return {
             'ETH': this.formatValue(balanceEth),
             'WBTC': this.formatValue(balanceWBTC),
             'WXRP': this.formatValue(balanceWXRP),
+            'USDT':  this.formatValue(balanceUSDT)
         }
     }
 
@@ -59,13 +62,14 @@ class InfuraNode {
     }
 
     static async getContractBalances(address) {
-        const assets = [ethAssetAddress, Tokens.wbtc, Tokens.wxrp];
+        const assets = [ethAssetAddress, Tokens.wbtc, Tokens.wxrp, Tokens.usdt];
         let balances = await Contracts.exchange.methods.getBalances(assets, address).call();
 
         return {
             'ETH': this.formatValue(balances[0]/10**8),
             'WBTC': this.formatValue(balances[1]/10**8),
             'WXRP': this.formatValue(balances[2]/10**8),
+            'USDT': this.formatValue(balances[3]/10**6),
         }
 
     }

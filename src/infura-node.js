@@ -69,7 +69,7 @@ class InfuraNode {
             'ETH': this.formatValue(balances[0]/10**8),
             'WBTC': this.formatValue(balances[1]/10**8),
             'WXRP': this.formatValue(balances[2]/10**8),
-            'USDT': this.formatValue(balances[3]/10**6),
+            'USDT': this.formatValue(balances[3]/10**8),
         }
 
     }

@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const OrionSettings = {
     matcherUrl: 'https://demo.orionprotocol.io/matcher',
-    orionUrl: 'http://localhost:9090/backend',
+    orionUrl: 'https://demo.orionprotocol.io/backend',
 };
 
 const Assets = {

@@ -12,7 +12,7 @@ const web3 = new Web3()
 
 // Suscribe to deposits and withdrawl events
 // WanchainNode.watchBalanceChange();
-InfuraNode.watchBalanceChange();
+InfuraNode.startWatching();
 
 app.use(express.json());
 

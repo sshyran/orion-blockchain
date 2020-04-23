@@ -1,8 +1,10 @@
 const Web3 = require("web3");
+const WsWeb3 = require("./wsWeb3");
 const web3 = new Web3("https://ropsten.infura.io/v3/e7e50056370b47e0b71bdbc746887727");
-const web3Websocket = require("./infuraWeb3");
+let web3Websocket;
 const History = require("./models/history");
 const _ = require("lodash");
+const io = require('socket.io')(3002);
 
 require('colors');
 
@@ -24,6 +26,124 @@ const Tokens = {
 
 const ethAssetAddress = "0x0000000000000000000000000000000000000000"; // ETH  "asset" address in balanaces
 
+let clients = {};
+let clientAddresses = {};
+let fromBlock = 0;
+let subscriptions = [];
+
+function watchBlocks() {
+    let timerId = null;
+    subscriptions.push(web3Websocket.eth.subscribe('newBlockHeaders')
+        .on('data', (blockHeader) => {
+            fromBlock = blockHeader.number;
+            console.log("New block:", fromBlock);
+            if (timerId) clearTimeout(timerId);
+            timerId = setTimeout(() => {
+                web3Websocket.refreshProvider();
+            }, 20000)
+        }).on('error', (error) => {
+            console.error("Error on newBlockHeaders:", error);
+        }));
+}
+
+
+async function subscribeBalanceChanges() {
+
+    if (!fromBlock) {
+        fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
+    }
+
+    console.log("Subscribe to BalanceChanges since block:", fromBlock);
+
+    const contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address);
+
+    subscriptions.push(
+        contract.events.NewAssetDeposit({fromBlock}, async (error, event) => {
+            if (error) return console.log(`Event error: ${error}`.red);
+
+            let {user, assetAddress, amount} = event.returnValues;
+            const asset = (await InfuraNode.assetDescription(assetAddress)).symbol.toUpperCase();
+            console.log(`New Deposit! ${amount} ${asset}. User: ${user}`.yellow.inverse);
+
+            await saveTransactionHistory(user, asset, amount, "Deposit");
+            await notifyClient(user, assetAddress, asset, amount);
+        }));
+
+    subscriptions.push(
+        contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) => {
+            if (error) return console.log(`Event error`.red);
+
+            let {user, assetAddress, amount} = event.returnValues;
+            const asset = (await InfuraNode.assetDescription(assetAddress)).symbol.toUpperCase();
+            console.log(`New Withdrawal! ${amount} ${asset}. User: ${user}`.yellow.inverse);
+
+            await saveTransactionHistory(user, asset, amount, "Withdrawal");
+            await notifyClient(user, assetAddress, asset, amount);
+        }));
+
+    function money(amount, symbol) {
+        return Number((amount / 10 ** 8).toFixed(8)) + ` ${symbol}`;
+    }
+
+    subscriptions.push(
+        contract.events.NewTrade({fromBlock}, async (error, event) => {
+            if (error) return console.log(`Event error`.red);
+
+            let {buyer, seller, baseAsset, quoteAsset, filledAmount, amountQuote} = event.returnValues;
+            const baseSymbol = (await InfuraNode.assetDescription(baseAsset)).symbol.toUpperCase();
+            const quoteSymbol = (await InfuraNode.assetDescription(quoteAsset)).symbol.toUpperCase();
+
+            console.log(`New Trade! ${money(filledAmount, baseSymbol)}/${money(amountQuote, quoteSymbol)} , Total:. Buyer: ${buyer}. Seller: ${seller}`.yellow.inverse);
+
+            await notifyClient(buyer, baseAsset, baseSymbol, filledAmount);
+            await notifyClient(buyer, quoteAsset, quoteSymbol, amountQuote);
+            await notifyClient(seller, baseAsset, baseSymbol, filledAmount);
+            await notifyClient(seller, quoteAsset, quoteSymbol, amountQuote);
+        }));
+
+    function saveTransactionHistory(user, asset, amount, reason) {
+
+        amount = amount / 10 ** 8
+
+        const history = {
+            type: reason.toLowerCase(),
+            asset: asset.toLowerCase(),
+            amount,
+            user
+        };
+        return History.create(history);
+    }
+
+    async function notifyClient(user, assetAddress, asset, amount) {
+        // If there is a client connected with the user event address
+        if (clients[user]) {
+            console.log("Notifying", user);
+            const newWalletBalance = await InfuraNode.getWalletBalance(assetAddress, user);
+            const balances = await InfuraNode.getContractBalances(user);
+            const newBalance = balances[asset];
+            io.to(user).emit('balanceChange', {
+                user, asset, assetAddress, amount, newBalance, newWalletBalance: String(newWalletBalance)
+            })
+        }
+
+    }
+
+}
+
+function unsubscribe(){
+    console.log("Unsubscribe from old subscriptions:", subscriptions.length)
+    subscriptions.forEach(s => s.unsubscribe());
+    subscriptions = [];
+}
+
+function subscribe(){
+    subscribeBalanceChanges()
+        .catch(error => {
+            console.log("Error during subscribeBalanceChanges:", error);
+        });
+    watchBlocks();
+}
+
 class InfuraNode {
 
     static formatValue(value){
@@ -36,16 +156,16 @@ class InfuraNode {
 
     static async getWalletBalances(address) {
 
-        let balanceEth = await this.getWalletBalance(ethAssetAddress, address);
-        let balanceWBTC = await this.getWalletBalance(Tokens.wbtc, address);
-        let balanceWXRP = await this.getWalletBalance(Tokens.wxrp, address);
-        let balanceUSDT = await this.getWalletBalance(Tokens.usdt, address);
+        let balanceEth = await InfuraNode.getWalletBalance(ethAssetAddress, address);
+        let balanceWBTC = await InfuraNode.getWalletBalance(Tokens.wbtc, address);
+        let balanceWXRP = await InfuraNode.getWalletBalance(Tokens.wxrp, address);
+        let balanceUSDT = await InfuraNode.getWalletBalance(Tokens.usdt, address);
 
         return {
-            'ETH': this.formatValue(balanceEth),
-            'WBTC': this.formatValue(balanceWBTC),
-            'WXRP': this.formatValue(balanceWXRP),
-            'USDT':  this.formatValue(balanceUSDT)
+            'ETH': InfuraNode.formatValue(balanceEth),
+            'WBTC': InfuraNode.formatValue(balanceWBTC),
+            'WXRP': InfuraNode.formatValue(balanceWXRP),
+            'USDT':  InfuraNode.formatValue(balanceUSDT)
         }
     }
 
@@ -66,10 +186,10 @@ class InfuraNode {
         let balances = await Contracts.exchange.methods.getBalances(assets, address).call();
 
         return {
-            'ETH': this.formatValue(balances[0]/10**8),
-            'WBTC': this.formatValue(balances[1]/10**8),
-            'WXRP': this.formatValue(balances[2]/10**8),
-            'USDT': this.formatValue(balances[3]/10**8),
+            'ETH': InfuraNode.formatValue(balances[0]/10**8),
+            'WBTC': InfuraNode.formatValue(balances[1]/10**8),
+            'WXRP': InfuraNode.formatValue(balances[2]/10**8),
+            'USDT': InfuraNode.formatValue(balances[3]/10**8),
         }
 
     }
@@ -101,15 +221,9 @@ class InfuraNode {
         return {depositEvents, withdrawEvents};
     }
 
-
-    static async watchBalanceChange (){
-
-        let clients = {};
-        let clientAddresses = {};
-        
-        const io = require('socket.io')(3002);
+    static async startWatching() {
         io.on('connection', client => {
-            // Client suscribes to a specific address 
+            // Client suscribes to a specific address
             client.on('clientAddress', address => {
                 if (!clients[address]) {
                     clients[address] = new Set();
@@ -127,7 +241,7 @@ class InfuraNode {
             });
 
             //When client disconnects, delete that record from object
-            client.on('disconnect', () => { 
+            client.on('disconnect', () => {
                 console.log("client disconnected");
                 const addr = clientAddresses[client.id];
                 if (clients[addr]) {
@@ -141,77 +255,12 @@ class InfuraNode {
             })
         });
 
-        const fromBlock = await web3.eth.getBlockNumber(); // start listening from current block
-        let contract = new web3Websocket.eth.Contract(exchangeArtifact.abi, exchangeArtifact.networks["3"].address)
-
-        contract.events.NewAssetDeposit({fromBlock}, async (error, event) => {
-            if (error) return console.log(`Event error: ${error}`.red);
-
-            let {user, assetAddress, amount} = event.returnValues;
-            const asset = (await this.assetDescription(assetAddress)).symbol.toUpperCase();
-            console.log(`New Deposit! ${amount} ${asset}. User: ${user}`.yellow.inverse);
-
-            await saveTransactionHistory(this, user, asset, amount, "Deposit");
-            await notifyClient(this, user, assetAddress, asset, amount);
-        });
-
-        contract.events.NewAssetWithdrawl({fromBlock}, async (error, event) =>{
-            if(error) return console.log(`Event error`.red) 
-
-            let { user, assetAddress, amount} = event.returnValues;
-            const asset = (await this.assetDescription(assetAddress)).symbol.toUpperCase();
-            console.log(`New Withdrawal! ${amount} ${asset}. User: ${user}`.yellow.inverse);
-
-            await saveTransactionHistory(this, user, asset, amount, "Withdrawal");
-            await notifyClient(this, user, assetAddress, asset, amount);
-        });
-
-        function money(amount, symbol) {
-            return  Number((amount / 10**8).toFixed(8)) + ` ${symbol}`;
-        }
-
-        contract.events.NewTrade({fromBlock}, async (error, event) => {
-            if (error) return console.log(`Event error`.red);
-
-            let {buyer, seller, baseAsset, quoteAsset, filledAmount, amountQuote} = event.returnValues;
-            const baseSymbol = (await this.assetDescription(baseAsset)).symbol.toUpperCase();
-            const quoteSymbol = (await this.assetDescription(quoteAsset)).symbol.toUpperCase();
-
-            console.log(`New Trade! ${money(filledAmount, baseSymbol)}/${money(amountQuote, quoteSymbol)} , Total:. Buyer: ${buyer}. Seller: ${seller}`.yellow.inverse);
-
-            await notifyClient(this, buyer, baseAsset, baseSymbol, filledAmount);
-            await notifyClient(this, buyer, quoteAsset, quoteSymbol, amountQuote);
-            await notifyClient(this, seller, baseAsset, baseSymbol, filledAmount);
-            await notifyClient(this, seller, quoteAsset, quoteSymbol, amountQuote);
-        });
-
-        function saveTransactionHistory(self, user, asset, amount, reason) {
-
-            amount = amount / 10**8
-            
-            const history = {
-                type: reason.toLowerCase(),
-                asset: asset.toLowerCase(),
-                amount,
-                user
-            };
-            return History.create(history);
-        }
-
-        async function notifyClient(self, user, assetAddress, asset, amount) {
-            // If there is a client connected with the user event address
-            if (clients[user]){
-                console.log("Notifying", user);
-                const newWalletBalance = await self.getWalletBalance(assetAddress, user);
-                const balances = await self.getContractBalances(user);
-                const newBalance = balances[asset];
-                io.to(user).emit('balanceChange',{
-                    user, asset, assetAddress, amount, newBalance, newWalletBalance: String(newWalletBalance)})
-            }
-
-        }
-        
+        web3Websocket = new WsWeb3(
+            "wss://ropsten.infura.io/ws/v3/e7e50056370b47e0b71bdbc746887727",
+            subscribe,
+            unsubscribe);
     }
+
 }
 
 module.exports = {

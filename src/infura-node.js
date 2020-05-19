@@ -40,7 +40,7 @@ function watchBlocks() {
             if (timerId) clearTimeout(timerId);
             timerId = setTimeout(() => {
                 web3Websocket.refreshProvider();
-            }, 20000)
+            }, 100000)
         }).on('error', (error) => {
             console.error("Error on newBlockHeaders:", error);
         }));

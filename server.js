@@ -10,6 +10,11 @@ const hdProvider = new HDWalletProvider(
     `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
     2
 );
+const NonceTrackerSubprovider = require("web3-provider-engine/subproviders/nonce-tracker")
+const nonceTracker = new NonceTrackerSubprovider()
+hdProvider.engine._providers.unshift(nonceTracker)
+nonceTracker.setEngine(hdProvider.engine)
+
 const web3 = new Web3(hdProvider);
 const exchangeArtifact = require("./abis/Exchange.json");
 

@@ -4,7 +4,7 @@ const express = require('express');
 const app = express();
 const { InfuraNode } = require('./src/infura-node');
 const { OrionMatcher } = require('./src/orion-matcher');
-const { getServer } = require('./server');
+const { ExchangeContract } = require('./src/exchange-contract');
 const mongoose = require('mongoose');
 const History = require('./src/models/history')
 const Web3 = require("web3");
@@ -99,9 +99,31 @@ app.post('/api/order', async (req, res) => {
     const order = req.body;
 
     try {
-        const result1 = await OrionMatcher.submitToMatcher(order);
-        const result2 = await OrionMatcher.submitToOrion(order);
+        const bo = await ExchangeContract.saveBlockchainOrder(order);
+        const result2 = await OrionMatcher.submitToOrion(bo);
         res.send(result2);
+    } catch (error) {
+        console.log(error);
+        res.status(400);
+        res.send({code: 1000, msg: error.message});
+    }
+});
+
+app.post('/api/trade', async (req, res) => {
+    const trade = req.body;
+
+    try {
+        if (trade.status === "FILLED") {
+            const counterOrder = await ExchangeContract.saveBlockchainOrder(trade);
+            res.send(counterOrder);
+            const status = await ExchangeContract.matchOrder(trade.clientOrdId, counterOrder);
+            console.log("ExchangeContract.matchOrder result:", status);
+            trade.status = status;
+            const result = await OrionMatcher.submitTradeToOrion(trade);
+        } else {
+            const result = await OrionMatcher.submitTradeToOrion(trade);
+            res.send(result);
+        }
     } catch (error) {
         console.log(error);
         res.status(400);
@@ -111,6 +133,7 @@ app.post('/api/order', async (req, res) => {
 
 app.listen(3001, function () {
     console.log('Orion-Wanchain app listening on http://localhost:3001/');
+    ExchangeContract.setup();
 });
 
 // Database --------------
@@ -124,6 +147,3 @@ mongoose.connect(process.env.DB_URI, {
 
 	console.log('Database ONLINE' + ' - ' + new Date().toLocaleString());
 });
-
-const routeServer = getServer();
-routeServer.start();

@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const OrionSettings = {
     matcherUrl: 'https://demo.orionprotocol.io/matcher',
-    orionUrl: 'https://demo.orionprotocol.io/backend',
+    orionUrl: 'http://localhost:9090/backend',
 };
 
 const Assets = {
@@ -124,11 +124,27 @@ class OrionMatcher {
     static toOrionOrder(bo) {
         return {
             clientId: bo.senderAddress,
+            clientOrdId: bo.id,
             symbol: Assets.toSymbol(bo.baseAsset, bo.quoteAsset),
             side: bo.side,
             orderQty: OrionMatcher.toFloatBalance(bo.amount).toString(),
             price: OrionMatcher.toFloatBalance(bo.price).toString(),
             ordType: "LIMIT"
+        }
+    }
+
+    /**
+     *
+     * @param trade:
+     */
+    static toOrionTrade(trade) {
+        return {
+            ordId: trade.ordId,
+            qty: OrionMatcher.toFloatBalance(trade.amount).toString(),
+            price: OrionMatcher.toFloatBalance(trade.price).toString(),
+            status: trade.status,
+            subOrdId: trade.subOrdId,
+            tradeId: trade.tradeId
         }
     }
 
@@ -140,6 +156,20 @@ class OrionMatcher {
             .then((res) => {
                 console.log(res.data);
                 return orionOrder;
+            })
+            .catch(error => {
+                console.log(error);
+                throw new Error(error.response);
+            });
+    }
+
+    static async submitTradeToOrion(trade) {
+        const ornTrade = OrionMatcher.toOrionTrade(trade);
+        console.log("Submitting Orn Trade: ", JSON.stringify(ornTrade));
+
+        return OrionMatcher.orionHttp().post('/api/v1/trade', ornTrade)
+            .then((res) => {
+                return res.data;
             })
             .catch(error => {
                 console.log(error.response.data);

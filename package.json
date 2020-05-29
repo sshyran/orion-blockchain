@@ -6,7 +6,7 @@
   "author": "Orion Protocol",
   "license": "MIT",
   "scripts": {
-    "start": "node index.js",
+    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {
